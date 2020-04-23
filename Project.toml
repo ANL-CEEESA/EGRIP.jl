@@ -1,0 +1,4 @@
+name = "EGRIP"
+uuid = "bd9c6376-fc5a-46b0-b09c-ef25590017a0"
+authors = ["Yichen <31248391+whoiszyc@users.noreply.github.com>"]
+version = "0.1.0"
