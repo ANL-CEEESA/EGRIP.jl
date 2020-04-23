@@ -329,17 +329,9 @@ row_to_dict(row_data) = row_to_dict(row_data, [])
 
 
 
-
-
-
-
-
-
-
-
-
-
-"Parses the matpower data from either a filename or an IO object"
+"""
+Parses the matpower data from either a filename or an IO object
+"""
 function parse_mfile(file::Union{IO, String}; validate=true)
     mp_data = parse_matpower_file(file)
     pm_data = matpower_to_powermodels(mp_data)
@@ -350,7 +342,7 @@ function parse_mfile(file::Union{IO, String}; validate=true)
 end
 
 
-### Data and functions specific to Matpower format ###
+# ## Data and functions specific to Matpower format ###
 mp_data_names = ["mpc.version", "mpc.baseMVA", "mpc.bus", "mpc.gen",
 "mpc.branch", "mpc.dcline", "mpc.gencost", "mpc.dclinecost",
 "mpc.bus_name", "mpc.storage"
