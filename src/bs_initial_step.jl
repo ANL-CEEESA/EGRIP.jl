@@ -20,12 +20,10 @@ using CPLEX
 using DataFrames
 using CSV
 
-"""
-    solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step)
 
+"""
 Solve restoration problem
 """
-
 function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step)
 
     #----------------- Load solver ---------------

@@ -12,6 +12,9 @@ ismultinetwork(data::Dict{String,Any}) = (haskey(data, "multinetwork") && data["
 # Create our module level logger (this will get precompiled)
 const LOGGER = getlogger(@__MODULE__)
 
+"""
+formulation a second-order cone optimal power flow
+"""
 function post_soc_opf(data::Dict{String,Any}, model=Model())
     @assert !haskey(data, "multinetwork")
     @assert !haskey(data, "conductors")
