@@ -5,7 +5,8 @@ using Documenter, EGRIP
 
 makedocs(
     modules = [EGRIP],
-    format = Documenter.HTML(analytics = "UA-367975-10", mathengine = Documenter.MathJax()),
+    # format = Documenter.HTML(analytics = "UA-367975-10", mathengine = Documenter.MathJax(), prettyurls = false),
+    format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true", mathengine = Documenter.MathJax(),analytics = "UA-367975-10"),
     sitename = "EGRIP.jl",
     pages = [
         "Home" => "index.md",

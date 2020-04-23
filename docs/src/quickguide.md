@@ -44,7 +44,7 @@ For example, the following dictionary comprehension can be used to inspect the b
 Dict(name => data["va"] for (name, data) in result["solution"]["bus"])
 ```
 
-The `print_summary(result["solution"])` function can be used show an table-like overview of the solution data.  For more information about PowerModels result data see the [PowerModels Result Data Format](@ref) section.
+The `print_summary(result["solution"])` function can be used show an table-like overview of the solution data.  For more information about PowerModels result data see the [Formulation Function](@ref) section.
 
 
 ## Accessing Different Formulations
@@ -62,7 +62,7 @@ where "ACPPowerModel" indicates an AC formulation in polar coordinates.  This mo
 run_opf("matpower/case3.m", SOCWRPowerModel, with_optimizer(Ipopt.Optimizer))
 ```
 
-[Formulation Details](@ref) provides a list of available formulations.
+[Formulation Function](@ref) provides a list of available formulations.
 
 
 ## Modifying Network Data
@@ -86,7 +86,7 @@ Network data parsed from PTI `.raw` files supports data extensions, i.e. data fi
 network_data = PowerModels.parse_file("pti/case3.raw"; import_all=true)
 ```
 
-This network data can be modified in the same way as the previous Matpower `.m` file example. For additional details about the network data, see the [PowerModels Network Data Format](@ref) section.
+This network data can be modified in the same way as the previous Matpower `.m` file example. For additional details about the network data, see the [Formulation Function](@ref) section.
 
 
 ## Inspecting AC and DC branch flow results
