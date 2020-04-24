@@ -21,7 +21,12 @@ using CSV
 
 
 """
-Solve restoration problem
+Solve restoration problem including the following constraints:
+- linearized AC power flow constraint
+- steady-state voltage variation constraint
+- generator cranking constraint
+- generator status and output constraint
+- load pick-up constraint
 """
 function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step)
 
