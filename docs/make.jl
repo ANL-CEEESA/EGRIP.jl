@@ -18,7 +18,11 @@ makedocs(
         "Public Library" =>"library_public.md"
         "Internal Library" =>"library_internal.md"
         ],
-        "Development Notes" =>"development_notes.md"
+        "Developer" =>[
+        "Development Notes"=>"development_notes.md",
+        "Code Loading"=>"dev_code_loading.md",
+        "Package Organization"=>"dev_package_org.md"
+        ]
     ]
 )
 
