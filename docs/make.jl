@@ -17,7 +17,8 @@ makedocs(
         "Library" => [
         "Public Library" =>"library_public.md"
         "Internal Library" =>"library_internal.md"
-        ]
+        ],
+        "Development Notes" =>"development_notes.md"
     ]
 )
 
