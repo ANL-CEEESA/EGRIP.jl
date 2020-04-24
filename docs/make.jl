@@ -14,7 +14,10 @@ makedocs(
             "Getting Started" => "quickguide.md",
             "Problem Formulations" => "formulations.md"
         ],
-        "Library" => "library.md"
+        "Library" => [
+        "Public Library" =>"library_public.md"
+        "Internal Library" =>"library_internal.md"
+        ]
     ]
 )
 

@@ -1,15 +1,6 @@
-# Library
-
-```@meta
-CurrentModule = EGRIP
-```
+# Internal Library
 
 ## Formulation Function
-use `@docs` block to splice the docstrings
-```@docs
-solve_restoration
-```
-
 use `@autodocs` block to splice the docstrings
 ```@autodocs
 Modules = [EGRIP]
@@ -20,3 +11,10 @@ Private  = true
 
 
 ## I/O Function
+use `@autodocs` block to splice the docstrings
+```@autodocs
+Modules = [EGRIP]
+Pages   = ["parser.jl"]
+Order   = [:type, :function]
+Private  = true
+```
