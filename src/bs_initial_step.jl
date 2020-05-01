@@ -737,10 +737,6 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
 
 end
 
-
-
-#
-#
 # #------------ Arguments --------------
 # dir_case_network = "/Users/whoiszyc/Github/EGRIP/src/cases/ieee_39bus/case39.m"
 # dir_case_blackstart = "/Users/whoiszyc/Github/EGRIP/src/cases/ieee_39bus/BS_generator.csv"
