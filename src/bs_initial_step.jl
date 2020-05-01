@@ -119,224 +119,20 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
     @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs],stages] <= ref[:branch][l]["rate_a"])
     @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs],stages] <= ref[:branch][l]["rate_a"])
 
-
-    # ------------------ Define contraints ---------------------
-    # nodal (bus) constraints: voltage and angle difference, generator and bus energizing logics
-    for (i,j) in keys(ref[:buspairs])
-        for t in stages
-            # voltage constraints
-            # voltage constraints are only activated if the associated line is energized
-            # If x=0, vl_i_j=0, vl_i_j >= v_i - v_i_max, vl_i_j <= v_i - v_i_min
-            # If x=1, vl=0, vl >= v - v_max
-            @constraint(model, vl[(i,j),t] >= ref[:bus][i]["vmin"]*x[(i,j),t])
-            @constraint(model, vl[(i,j),t] <= ref[:bus][i]["vmax"]*x[(i,j),t])
-            @constraint(model, vl[(j,i),t] >= ref[:bus][j]["vmin"]*x[(i,j),t])
-            @constraint(model, vl[(j,i),t] <= ref[:bus][j]["vmax"]*x[(i,j),t])
-            @constraint(model, vl[(i,j),t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-x[(i,j),t]))
-            @constraint(model, vl[(i,j),t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-x[(i,j),t]))
-            @constraint(model, vl[(j,i),t] >= v[j,t] - ref[:bus][j]["vmax"]*(1-x[(i,j),t]))
-            @constraint(model, vl[(j,i),t] <= v[j,t] - ref[:bus][j]["vmin"]*(1-x[(i,j),t]))
-
-            # angle difference constraints
-            # angle difference constraints are only activated if the associated line is energized
-            @constraint(model, a[i,t] - a[j,t] >= ref[:buspairs][(i,j)]["angmin"])
-            @constraint(model, a[i,t] - a[j,t] <= ref[:buspairs][(i,j)]["angmax"])
-            @constraint(model, al[(i,j),t] - al[(j,i),t] >= ref[:buspairs][(i,j)]["angmin"]*x[(i,j),t])
-            @constraint(model, al[(i,j),t] - al[(j,i),t] <= ref[:buspairs][(i,j)]["angmax"]*x[(i,j),t])
-            @constraint(model, al[(i,j),t] - al[(j,i),t] >= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmax"]*(1-x[(i,j),t]))
-            @constraint(model, al[(i,j),t] - al[(j,i),t] <= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmin"]*(1-x[(i,j),t]))
-
-            # on-line generator cannot be shut down
-            if t > 1
-                @constraint(model, x[(i,j), t] >= x[(i,j), t-1])
-            end
-
-            # bus should be energized before the connected genertor being on
-            @constraint(model, u[i,t] >= x[(i,j),t])
-            @constraint(model, u[j,t] >= x[(i,j),t])
-
-        end
-    end
-
-    # nodal (bus) constraints
-    for (i,bus) in ref[:bus]  # loop its keys and entries
-        for t in stages
-            bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
-
-            @constraint(model, vb[i,t] >= ref[:bus][i]["vmin"]*u[i,t])
-            @constraint(model, vb[i,t] <= ref[:bus][i]["vmax"]*u[i,t])
-            @constraint(model, vb[i,t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-u[i,t]))
-            @constraint(model, vb[i,t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-u[i,t]))
-
-            # u_i >= y_i & u_{i,t} >= u_{i,t-1}
-            for g in ref[:bus_gens][i]
-                @constraint(model, u[i,t] == y[g,t])  # bus on == generator on
-            end
-            if t > 1
-                @constraint(model, u[i,t] >= u[i,t-1]) # on-line buses cannot be shut down
-            end
-
-            # Bus KCL
-            # Nodal power balance constraint
-            @constraint(model, sum(p[a,t] for a in ref[:bus_arcs][i]) ==
-                sum(pg[g,t] for g in ref[:bus_gens][i]) -
-                sum(pl[l,t] for l in ref[:bus_loads][i]) -
-                sum(shunt["gs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
-            @constraint(model, sum(q[a,t] for a in ref[:bus_arcs][i]) ==
-                sum(qg[g,t] for g in ref[:bus_gens][i]) -
-                sum(ql[l,t] for l in ref[:bus_loads][i]) +
-                sum(shunt["bs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
-        end
-    end
+    # nodal constraint
+    model = form_nodal(ref, model, stages, vl, vb, v, x, y, a, al, u, p, q, pg, pl, qg, ql)
 
     # branch (power flow) constraints
-    for (i,branch) in ref[:branch]
-        for t in stages
-            # create indices for variables
-            f_idx = (i, branch["f_bus"], branch["t_bus"])
-            t_idx = (i, branch["t_bus"], branch["f_bus"])
-            bpf_idx = (branch["f_bus"], branch["t_bus"])
-            bpt_idx = (branch["t_bus"], branch["f_bus"])
-            # get indexed power flow
-            p_fr = p[f_idx,t]
-            q_fr = q[f_idx,t]
-            p_to = p[t_idx,t]
-            q_to = q[t_idx,t]
-            # get indexed voltage
-            v_fr = vl[bpf_idx,t]
-            v_to = vl[bpt_idx,t]
-            c_br = vl[bpf_idx,t] + vl[bpt_idx,t] - x[bpf_idx,t]
-            s_br = al[bpt_idx,t] - al[bpf_idx,t]
-            u_fr = u[branch["f_bus"],t]
-            u_to = u[branch["t_bus"],t]
+    model = form_branch(ref, model, stages, vl, al, x, u, p, q)
 
-            # get line parameters
-            ybus = pinv(branch["br_r"] + im * branch["br_x"])
-            g, b = real(ybus), imag(ybus)
-            g_fr = branch["g_fr"]
-            b_fr = branch["b_fr"]
-            g_to = branch["g_to"]
-            b_to = branch["b_to"]
-            # tap changer related computation
-            tap_ratio = branch["tap"]
-            angle_shift = branch["shift"]
-            tr, ti = tap_ratio * cos(angle_shift), tap_ratio * sin(angle_shift)
-            tm = tap_ratio^2
+    # generator control constraint
+    model = form_gen_logic(ref, model, stages, nstage, pg, y, Krp, Pcr)
 
-            ###### TEST ######
-            # tr = 1; ti = 0; tm = 1
-            # g_fr = 0
-            # b_fr = 0
-            # g_to = 0
-            # b_to = 0
-
-            # AC Line Flow Constraints
-            @constraint(model, p_fr ==  (g+g_fr)/tm*(2*v_fr-x[bpf_idx,t]) + (-g*tr+b*ti)/tm*c_br + (-b*tr-g*ti)/tm*s_br)
-            @constraint(model, q_fr == -(b+b_fr)/tm*(2*v_fr-x[bpf_idx,t]) - (-b*tr-g*ti)/tm*c_br + (-g*tr+b*ti)/tm*s_br)
-
-            @constraint(model, p_to ==  (g+g_to)*(2*v_to-x[bpf_idx,t]) + (-g*tr-b*ti)/tm*c_br + (-b*tr+g*ti)/tm*(-s_br) )
-            @constraint(model, q_to == -(b+b_to)*(2*v_to-x[bpf_idx,t]) - (-b*tr+g*ti)/tm*c_br + (-g*tr-b*ti)/tm*(-s_br) )
-        end
-    end
-
-    # generator status and output constraint
-    for g in keys(ref[:gen])
-        # generator ramping rate constraint
-        for t in 1:nstage-1
-            @constraint(model, pg[g,t] - pg[g,t+1] >= -Krp[g])
-            @constraint(model, pg[g,t] - pg[g,t+1] <= Krp[g])
-        end
-        # black-start unit is determined by the cranking power
-        if Pcr[g] == 0
-            for t in stages
-                @constraint(model, y[g,t] == 1)
-            end
-        else
-            for t in 1:nstage-1
-                @constraint(model, y[g,t] <= y[g,t+1]) # on-line generators cannot be shut down
-            end
-        end
-    end
-
+    # load control constraint
+    model = form_load_logic(ref, model, stages, pl, ql, u)
 
     # generator cranking constraint
-    # This part is the key feature of black start. The logic is as follows:
-    # Once a non-black start generator is on, that is, y[g]=1, then it needs to absorb the cranking power for its corresponding cranking time
-    # "After" the time step that this unit satisfies its cranking constraint, its power goes to zero; and from the next time step, it becomes a dispatchable generator
-    for t in stages
-        for g in keys(ref[:gen])
-            if t > Tcr[g] + 1
-                """
-                `cranking_1`
-                # set non-black start unit generation limits based on "generator cranking constraint"
-                # cranking constraint states if generator g has absorb the cranking power for its corresponding cranking time, it can produce power
-                # Mathematically if there exist enough 1 for y[g], then enable this generator's generating capability
-                # There will be the following scenarios
-                # (1) generator is off, then y[g,t] - y[g,t-Tcr[g]] = 0, then pg[g,t] == 0
-                # (2) generator is on but cranking time not satisfied, then y[g,t] - y[g,t-Tcr[g]] = 1, then pg[g,t] == -Pcr[g]
-                # (3) generator is on and just satisfies the cranking time, then y[g,t] - y[g,t-Tcr[g]] = 0, y[g,t-Tcr[g]-1]=0, then pg[g,t] == 0
-                # (4) generator is on and bigger than satisfies the cranking time, then y[g,t] - y[g,t-Tcr[g]] = 0, y[g,t-Tcr[g]-1]=1, then 0 <= pg[g,t] <= pg_max
-                """
-                @constraint(model, pg[g,t] >= -Pcr[g] * (y[g,t] - y[g,t-Tcr[g]]))
-                @constraint(model, pg[g,t] <= ref[:gen][g]["pmax"] * y[g,t-Tcr[g]-1] - Pcr[g] * (y[g,t] - y[g,t-Tcr[g]]))
-            elseif t <= Tcr[g]
-                # determine the non-black start generator power by its cranking condition
-                # with the time less than the cranking time, the generator power could only be zero or absorbing cranking power
-                @constraint(model, pg[g,t] == -Pcr[g] * y[g,t])
-            else
-                # if the unit is on from the first time instant, it satisfies the cranking constraint and its power becomes zero
-                # if not, it still absorbs the cranking power
-                @constraint(model, pg[g,t] == -Pcr[g] * (y[g,t] - y[g,1]))
-            end
-            @constraint(model, qg[g,t] >= ref[:gen][g]["qmin"]*y[g,t])
-            # @constraint(model, qg[g,t] >= -10*y[g,t])
-            @constraint(model, qg[g,t] <= ref[:gen][g]["qmax"]*y[g,t])
-        end
-    end
-
-
-    # load pickup constraint
-    for t in stages
-        for l in keys(ref[:load])
-
-            # active power load
-            if ref[:load][l]["pd"] >= 0  # The current bus has positive active power load
-                @constraint(model, pl[l,t] >= 0)
-                @constraint(model, pl[l,t] <= ref[:load][l]["pd"] * u[ref[:load][l]["load_bus"],t])
-                if t > 1
-                    @constraint(model, pl[l,t] >= pl[l,t-1]) # no load shedding
-                end
-            else
-                @constraint(model, pl[l,t] <= 0) # The current bus has no positive active power load ?
-                @constraint(model, pl[l,t] >= ref[:load][l]["pd"] * u[ref[:load][l]["load_bus"],t])
-                if t > 1
-                    @constraint(model, pl[l,t] <= pl[l,t-1])
-                end
-            end
-
-            # fix power factors
-            if abs(ref[:load][l]["pd"]) >= exp(-8)
-                @constraint(model, ql[l,t] == pl[l,t] * ref[:load][l]["qd"] / ref[:load][l]["pd"])
-                continue
-            end
-
-            # reactive power load
-            if ref[:load][l]["qd"] >= 0
-                @constraint(model, ql[l,t] >= 0)
-                @constraint(model, ql[l,t] <= ref[:load][l]["qd"] * u[ref[:load][l]["load_bus"],t])
-                if t > 1
-                    @constraint(model, ql[l,t] >= ql[l,t-1])
-                end
-            else
-                @constraint(model, ql[l,t] <= 0)
-                @constraint(model, ql[l,t] >= ref[:load][l]["qd"] * u[ref[:load][l]["load_bus"],t])
-                if t > 1
-                    @constraint(model, ql[l,t] <= ql[l,t-1])
-                end
-            end
-        end
-    end
-
+    model = form_bs_logic(ref, model, stages, pg, qg, y, Pcr, Tcr)
 
     #------------------- Define objectives--------------------
     # @objective(model, Min, sum( sum(1 - y[g,t] for g in keys(ref[:gen])) for t in stages ) + sum( sum(t*z[l,t] for l in keys(ref[:load])) for t in stages ) )
@@ -344,7 +140,6 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
     #         + sum(pl[l,t] for l in keys(ref[:load]) if ref[:load][l]["pd"] < 0) for t in stages ) )
     # @objective(model, Min, sum(10*sum(1 - y[g,t] for g in keys(ref[:gen])) + sum(x[a,t] for a in keys(ref[:buspairs])) for t in stages) )
     @objective(model, Min, sum(sum(1 - y[g,t] for g in keys(ref[:gen])) for t in stages) )
-
 
     #------------- Build and solve model----------------
     # buildInternalModel(model)
@@ -394,8 +189,6 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
         end
         println("")
     end
-
-
 
     #-----------Build a dictionary to store the changing point---------------
     CP = Dict();
@@ -736,6 +529,265 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
     close(resultfile)
 
 end
+
+
+"""
+form the nodal constraints:
+- voltage constraint
+ - voltage constraints are only activated if the associated line is energized
+    - If x=0, vl_i_j=0, vl_i_j >= v_i - v_i_max, vl_i_j <= v_i - v_i_min
+    - If x=1, vl=0, vl >= v - v_max
+ - voltage deviation should be limited
+- angle difference constraint
+     - angle difference constraints are only activated if the associated line is energized
+     - angle difference should be limited
+- generator and bus energizing logics
+     - on-line generator cannot be shut down
+"""
+function form_nodal(ref, model, stages, vl, vb, v, x, y, a, al, u, p, q, pg, pl, qg, ql)
+    for (i,j) in keys(ref[:buspairs])
+        for t in stages
+            # voltage constraints
+            # voltage constraints are only activated if the associated line is energized
+            @constraint(model, vl[(i,j),t] >= ref[:bus][i]["vmin"]*x[(i,j),t])
+            @constraint(model, vl[(i,j),t] <= ref[:bus][i]["vmax"]*x[(i,j),t])
+            @constraint(model, vl[(j,i),t] >= ref[:bus][j]["vmin"]*x[(i,j),t])
+            @constraint(model, vl[(j,i),t] <= ref[:bus][j]["vmax"]*x[(i,j),t])
+            @constraint(model, vl[(i,j),t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-x[(i,j),t]))
+            @constraint(model, vl[(i,j),t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-x[(i,j),t]))
+            @constraint(model, vl[(j,i),t] >= v[j,t] - ref[:bus][j]["vmax"]*(1-x[(i,j),t]))
+            @constraint(model, vl[(j,i),t] <= v[j,t] - ref[:bus][j]["vmin"]*(1-x[(i,j),t]))
+
+            # angle difference constraints
+            # angle difference constraints are only activated if the associated line is energized
+            @constraint(model, a[i,t] - a[j,t] >= ref[:buspairs][(i,j)]["angmin"])
+            @constraint(model, a[i,t] - a[j,t] <= ref[:buspairs][(i,j)]["angmax"])
+            @constraint(model, al[(i,j),t] - al[(j,i),t] >= ref[:buspairs][(i,j)]["angmin"]*x[(i,j),t])
+            @constraint(model, al[(i,j),t] - al[(j,i),t] <= ref[:buspairs][(i,j)]["angmax"]*x[(i,j),t])
+            @constraint(model, al[(i,j),t] - al[(j,i),t] >= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmax"]*(1-x[(i,j),t]))
+            @constraint(model, al[(i,j),t] - al[(j,i),t] <= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmin"]*(1-x[(i,j),t]))
+
+            # on-line generator cannot be shut down
+            if t > 1
+                @constraint(model, x[(i,j), t] >= x[(i,j), t-1])
+            end
+
+            # bus should be energized before the connected genertor being on
+            @constraint(model, u[i,t] >= x[(i,j),t])
+            @constraint(model, u[j,t] >= x[(i,j),t])
+
+        end
+    end
+
+    # nodal (bus) constraints
+    for (i,bus) in ref[:bus]  # loop its keys and entries
+        for t in stages
+            bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
+
+            @constraint(model, vb[i,t] >= ref[:bus][i]["vmin"]*u[i,t])
+            @constraint(model, vb[i,t] <= ref[:bus][i]["vmax"]*u[i,t])
+            @constraint(model, vb[i,t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-u[i,t]))
+            @constraint(model, vb[i,t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-u[i,t]))
+
+            # u_i >= y_i & u_{i,t} >= u_{i,t-1}
+            for g in ref[:bus_gens][i]
+                @constraint(model, u[i,t] == y[g,t])  # bus on == generator on
+            end
+            if t > 1
+                @constraint(model, u[i,t] >= u[i,t-1]) # on-line buses cannot be shut down
+            end
+
+            # Bus KCL
+            # Nodal power balance constraint
+            @constraint(model, sum(p[a,t] for a in ref[:bus_arcs][i]) ==
+                sum(pg[g,t] for g in ref[:bus_gens][i]) -
+                sum(pl[l,t] for l in ref[:bus_loads][i]) -
+                sum(shunt["gs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
+            @constraint(model, sum(q[a,t] for a in ref[:bus_arcs][i]) ==
+                sum(qg[g,t] for g in ref[:bus_gens][i]) -
+                sum(ql[l,t] for l in ref[:bus_loads][i]) +
+                sum(shunt["bs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
+        end
+    end
+    return model
+end
+
+
+"""
+branch (power flow) constraints
+- linearized power flow
+"""
+function form_branch(ref, model, stages, vl, al, x, u, p, q)
+
+    for (i,branch) in ref[:branch]
+        for t in stages
+            # create indices for variables
+            f_idx = (i, branch["f_bus"], branch["t_bus"])
+            t_idx = (i, branch["t_bus"], branch["f_bus"])
+            bpf_idx = (branch["f_bus"], branch["t_bus"])
+            bpt_idx = (branch["t_bus"], branch["f_bus"])
+            # get indexed power flow
+            p_fr = p[f_idx,t]
+            q_fr = q[f_idx,t]
+            p_to = p[t_idx,t]
+            q_to = q[t_idx,t]
+            # get indexed voltage
+            v_fr = vl[bpf_idx,t]
+            v_to = vl[bpt_idx,t]
+            c_br = vl[bpf_idx,t] + vl[bpt_idx,t] - x[bpf_idx,t]
+            s_br = al[bpt_idx,t] - al[bpf_idx,t]
+            u_fr = u[branch["f_bus"],t]
+            u_to = u[branch["t_bus"],t]
+
+            # get line parameters
+            ybus = pinv(branch["br_r"] + im * branch["br_x"])
+            g, b = real(ybus), imag(ybus)
+            g_fr = branch["g_fr"]
+            b_fr = branch["b_fr"]
+            g_to = branch["g_to"]
+            b_to = branch["b_to"]
+            # tap changer related computation
+            tap_ratio = branch["tap"]
+            angle_shift = branch["shift"]
+            tr, ti = tap_ratio * cos(angle_shift), tap_ratio * sin(angle_shift)
+            tm = tap_ratio^2
+
+            ###### TEST ######
+            # tr = 1; ti = 0; tm = 1
+            # g_fr = 0
+            # b_fr = 0
+            # g_to = 0
+            # b_to = 0
+
+            # AC Line Flow Constraints
+            @constraint(model, p_fr ==  (g+g_fr)/tm*(2*v_fr-x[bpf_idx,t]) + (-g*tr+b*ti)/tm*c_br + (-b*tr-g*ti)/tm*s_br)
+            @constraint(model, q_fr == -(b+b_fr)/tm*(2*v_fr-x[bpf_idx,t]) - (-b*tr-g*ti)/tm*c_br + (-g*tr+b*ti)/tm*s_br)
+
+            @constraint(model, p_to ==  (g+g_to)*(2*v_to-x[bpf_idx,t]) + (-g*tr-b*ti)/tm*c_br + (-b*tr+g*ti)/tm*(-s_br) )
+            @constraint(model, q_to == -(b+b_to)*(2*v_to-x[bpf_idx,t]) - (-b*tr+g*ti)/tm*c_br + (-g*tr-b*ti)/tm*(-s_br) )
+        end
+    end
+    return model
+end
+
+
+"""
+load pickup constraint
+"""
+function form_load_logic(ref, model, stages, pl, ql, u)
+
+    for t in stages
+        for l in keys(ref[:load])
+
+            # active power load
+            if ref[:load][l]["pd"] >= 0  # The current bus has positive active power load
+                @constraint(model, pl[l,t] >= 0)
+                @constraint(model, pl[l,t] <= ref[:load][l]["pd"] * u[ref[:load][l]["load_bus"],t])
+                if t > 1
+                    @constraint(model, pl[l,t] >= pl[l,t-1]) # no load shedding
+                end
+            else
+                @constraint(model, pl[l,t] <= 0) # The current bus has no positive active power load ?
+                @constraint(model, pl[l,t] >= ref[:load][l]["pd"] * u[ref[:load][l]["load_bus"],t])
+                if t > 1
+                    @constraint(model, pl[l,t] <= pl[l,t-1])
+                end
+            end
+
+            # fix power factors
+            if abs(ref[:load][l]["pd"]) >= exp(-8)
+                @constraint(model, ql[l,t] == pl[l,t] * ref[:load][l]["qd"] / ref[:load][l]["pd"])
+                continue
+            end
+
+            # reactive power load
+            if ref[:load][l]["qd"] >= 0
+                @constraint(model, ql[l,t] >= 0)
+                @constraint(model, ql[l,t] <= ref[:load][l]["qd"] * u[ref[:load][l]["load_bus"],t])
+                if t > 1
+                    @constraint(model, ql[l,t] >= ql[l,t-1])
+                end
+            else
+                @constraint(model, ql[l,t] <= 0)
+                @constraint(model, ql[l,t] >= ref[:load][l]["qd"] * u[ref[:load][l]["load_bus"],t])
+                if t > 1
+                    @constraint(model, ql[l,t] <= ql[l,t-1])
+                end
+            end
+        end
+    end
+    return model
+end
+
+
+
+"""
+generator status and output constraint
+- generator ramping rate constraint
+- black-start unit is determined by the cranking power
+- on-line generators cannot be shut down
+"""
+function form_gen_logic(ref, model, stages, nstage, pg, y, Krp, Pcr)
+    for g in keys(ref[:gen])
+        # generator ramping rate constraint
+        for t in 1:nstage-1
+            @constraint(model, pg[g,t] - pg[g,t+1] >= -Krp[g])
+            @constraint(model, pg[g,t] - pg[g,t+1] <= Krp[g])
+        end
+        # black-start unit is determined by the cranking power
+        if Pcr[g] == 0
+            for t in stages
+                @constraint(model, y[g,t] == 1)
+            end
+        else
+            for t in 1:nstage-1
+                # on-line generators cannot be shut down
+                @constraint(model, y[g,t] <= y[g,t+1])
+            end
+        end
+    end
+    return model
+end
+
+"""
+generator cranking constraint
+- This part is the key feature of black start. The logic is as follows:
+- Once a non-black start generator is on, that is, y[g]=1, then it needs to absorb the cranking power for its corresponding cranking time
+- "After" the time step that this unit satisfies its cranking constraint, its power goes to zero; and from the next time step, it becomes a dispatchable generator
+    - set non-black start unit generation limits based on "generator cranking constraint"
+    - cranking constraint states if generator g has absorb the cranking power for its corresponding cranking time, it can produce power
+- Mathematically if there exist enough 1 for y[g], then enable this generator's generating capability
+- There will be the following scenarios
+    - (1) generator is off, then y[g,t] - y[g,t-Tcr[g]] = 0, then pg[g,t] == 0
+    - (2) generator is on but cranking time not satisfied, then y[g,t] - y[g,t-Tcr[g]] = 1, then pg[g,t] == -Pcr[g]
+    - (3) generator is on and just satisfies the cranking time, then y[g,t] - y[g,t-Tcr[g]] = 0, y[g,t-Tcr[g]-1]=0, then pg[g,t] == 0
+    - (4) generator is on and bigger than satisfies the cranking time, then y[g,t] - y[g,t-Tcr[g]] = 0, y[g,t-Tcr[g]-1]=1, then 0 <= pg[g,t] <= pg_max
+"""
+function form_bs_logic(ref, model, stages, pg, qg, y, Pcr, Tcr)
+    for t in stages
+        for g in keys(ref[:gen])
+            if t > Tcr[g] + 1
+                # scenario 1
+                @constraint(model, pg[g,t] >= -Pcr[g] * (y[g,t] - y[g,t-Tcr[g]]))
+                @constraint(model, pg[g,t] <= ref[:gen][g]["pmax"] * y[g,t-Tcr[g]-1] - Pcr[g] * (y[g,t] - y[g,t-Tcr[g]]))
+            elseif t <= Tcr[g]
+                # determine the non-black start generator power by its cranking condition
+                # with the time less than the cranking time, the generator power could only be zero or absorbing cranking power
+                @constraint(model, pg[g,t] == -Pcr[g] * y[g,t])
+            else
+                # if the unit is on from the first time instant, it satisfies the cranking constraint and its power becomes zero
+                # if not, it still absorbs the cranking power
+                @constraint(model, pg[g,t] == -Pcr[g] * (y[g,t] - y[g,1]))
+            end
+            @constraint(model, qg[g,t] >= ref[:gen][g]["qmin"]*y[g,t])
+            # @constraint(model, qg[g,t] >= -10*y[g,t])
+            @constraint(model, qg[g,t] <= ref[:gen][g]["qmax"]*y[g,t])
+        end
+    end
+    return model
+end
+
+
 
 # #------------ Arguments --------------
 # dir_case_network = "/Users/whoiszyc/Github/EGRIP/src/cases/ieee_39bus/case39.m"

@@ -22,6 +22,10 @@ makedocs(
         "Development Notes"=>"development_notes.md",
         "Code Loading"=>"dev_code_loading.md",
         "Package Organization"=>"dev_package_org.md"
+        ],
+        "Research" =>[
+        "Literature Review"=>"literature.md",
+        "Benchmark Testing"=>"benchmark.md",
         ]
     ]
 )
