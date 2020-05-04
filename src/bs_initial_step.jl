@@ -1,7 +1,6 @@
-# # If we use module, we load them to access the fucntion
-# # If we do not use module, we do not need to do anything
-# # ----------------- Load modules from our package-------------------
-# # Option 1: We put include("file") in the main module
+# # If we use fucntions from other un-registered modules, we need to declare them
+# # ----------------- Load modules from un-registered modules-------------------
+# # Option 1: We organize multiple scripts as a package and put include("file") in the main module
 # # Option 2: We put include("file") in the scripts needed
 # include("ReadMFile.jl")
 # include("Form.jl")
@@ -786,14 +785,3 @@ function form_bs_logic(ref, model, stages, pg, qg, y, Pcr, Tcr)
     end
     return model
 end
-
-
-
-# #------------ Arguments --------------
-# dir_case_network = "/Users/whoiszyc/Github/EGRIP/src/cases/ieee_39bus/case39.m"
-# dir_case_blackstart = "/Users/whoiszyc/Github/EGRIP/src/cases/ieee_39bus/BS_generator.csv"
-# dir_case_result = "/Users/whoiszyc/Github/EGRIP/src/cases/ieee_39bus/results/"
-# t_final = 500
-# t_step = 250
-#
-# solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step)

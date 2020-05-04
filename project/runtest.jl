@@ -13,7 +13,7 @@ using EGRIP
 # include("../src/EGRIP.jl")
 # using .EGRIP
 
-# ------------ Arguments --------------
+# # ------------ Interactive --------------
 dir_case_network = "/Users/whoiszyc/Github/EGRIP.jl/src/cases/ieee_39bus/case39.m"
 dir_case_blackstart = "/Users/whoiszyc/Github/EGRIP.jl/src/cases/ieee_39bus/BS_generator.csv"
 dir_case_result = "/Users/whoiszyc/Github/EGRIP.jl/src/cases/ieee_39bus/results/"
@@ -21,3 +21,20 @@ t_final = 500
 t_step = 250
 
 solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step)
+
+
+# -------------- Command line --------------
+# Arguments
+# dir_case_network = parse(String, ARGS[1])
+# dir_case_blackstart = parse(String, ARGS[2])
+# dir_case_result = parse(String, ARGS[3])
+# t_final = parse(Int64, ARGS[4])
+# t_step = parse(Int64, ARGS[5])
+
+# println(dir_case_network)
+# println(dir_case_blackstart)
+# println(dir_case_result)
+# println(t_final)
+# println(t_step)
+
+# solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step)
