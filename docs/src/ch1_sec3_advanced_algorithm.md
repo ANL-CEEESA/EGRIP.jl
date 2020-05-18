@@ -12,4 +12,4 @@ We verify the method on the black start problem for the IEEE 39-bus system. The 
 ![Multi-resolution results](fig_mr_result.png)
 
 
-## Meta heuristic Approachs
+## Extended-Term Simulation

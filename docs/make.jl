@@ -11,10 +11,10 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Manual" => [
-            "Getting Started" => "ch1_sec1_quickguide.md",
+            "Installation" => "ch1_sec1_install.md",
             "Problem Formulations" => "ch1_sec2_formulations.md",
             "Advanced Algorithms" => "ch1_sec3_advanced_algorithm.md",
-            "Realistic Restoration Workflow" => "ch1_sec4_real_workflow.md"
+            "Restoration Workflow" => "ch1_sec4_workflow.md"
         ],
         "Library" => [
         "Public Library" =>"ch2_sec1_library_public.md"
