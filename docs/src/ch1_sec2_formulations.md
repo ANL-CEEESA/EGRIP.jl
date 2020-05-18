@@ -1,4 +1,4 @@
-# The PowerModels Mathematical Model
+# Mathematical Model
 
 As PowerModels implements a variety of power network optimization problems, the implementation is the best reference for precise mathematical formulations.  This section provides a complex number based mathematical specification for a prototypical AC Optimal Power Flow problem, to provide an overview of the typical mathematical models in PowerModels.
 
