@@ -19,12 +19,12 @@ using EGRIP
 ```
 First, we need to tell the package where our problem data is:
 ```julia
-dir_case_network = "/Users/whoiszyc/Github/EGRIP.jl/src/cases/ieee_39bus/case39.m"
-dir_case_blackstart = "/Users/whoiszyc/Github/EGRIP.jl/src/cases/ieee_39bus/BS_generator.csv"
+dir_case_network = "./case39.m"
+dir_case_blackstart = "./BS_generator.csv"
 ```
 Second, we need to tell the package where our results are going to be stored:
 ```julia
-dir_case_result = "/Users/whoiszyc/Github/EGRIP.jl/src/cases/ieee_39bus/results/"
+dir_case_result = "./results/"
 ```
 Then, we define the restoration duration and time steps:
 ```julia
