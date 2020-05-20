@@ -1,5 +1,11 @@
 # Mathematical Model
 
+- [Power Flow Model](@ref)
+- [Nodal Constraint Model](@ref)
+- [Generator Cranking Model](@ref)
+- [Generator Dispatch Model](@ref)
+- [Load Dispatch Model](@ref)
+
 
 ## Sets, Parameters and Variables
 ```math
@@ -36,9 +42,9 @@
 \end{align*}
 ```
 
-## Branch Constraints
+## Power Flow Model
 The formulations of branch constraints are implemented in function `form_branch`.
-### Power Flow Equations
+### AC power flow
 The typical π-circuit line model with an ideal transformer is used to model the standard "AC" power flow:
 ![Line model](fig_pi_line.png)
 
@@ -50,6 +56,7 @@ Three representations of AC power flow can be found below:
 
 (Ref: Molzahn, Daniel K., and Ian A. Hiskens. "A survey of relaxations and approximations of the power flow equations." *Foundations and Trends® in Electric Energy Systems* 4, no. 1-2 (2019): 1-221.)
 
+### DC power flow
 The standard "DC" approximation to AC power flow linearizes these equations by using the approximations $v_{i}=v_{j}=1$, $sinα_{ij}=α_{ij}$, $cosα_{ij}=1$, and $b_{l}>>g_{l}=0$ yielding:
 ```math
 \begin{align*}
@@ -57,6 +64,7 @@ p_{ij}=B_{ij}α_{ij}
 \end{align*}
 ```
 
+### Linearized AC power flow
 Expanding the line flows about $v_{i}=v_{j}=1$, $α_{ij}=0$ and making small-angle approximations $sinα_{ij}=α_{ij}$ and $cosα_{ij}=1$ yielding linearized AC power flow
 ```math
 \begin{align*}
@@ -68,7 +76,7 @@ where voltage and reactive power are retained.
 
 (Ref: Trodden, Paul A., Waqquas Ahmed Bukhsh, Andreas Grothey, and Ken IM McKinnon. "Optimization-based islanding of power networks using piecewise linear AC power flow." *IEEE Transactions on Power Systems* 29, no. 3 (2013): 1212-1220.)
 
-### Linearized AC Power Flow Constraints Under Restoration
+### Linearized AC power flow with bus and line energization
 ```math
 \begin{align*}
 p_{bij,t}=G_{ii}(2vl_{ij,t}-x_{ij,t}) + G_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) + B_{ij}(al_{ij,t}-al_{ij,t})\\
@@ -76,8 +84,7 @@ q_{bij,t}=-B_{ii}(2vl_{ij,t}-x_{ij,t}) - B_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) 
 \end{align*}
 ```
 
-
-## Nodal Constraints
+## Nodal Constraint Model
 The formulations of nodal constraints are implemented in function `form_nodal`.
 - Voltage Constraint
     - voltage deviation should be limited
@@ -112,7 +119,7 @@ The formulations of nodal constraints are implemented in function `form_nodal`.
 \end{align*}
 ```
 
-## Generator Cranking Constraints
+## Generator Cranking Model
 The formulations of generator cranking constraints are implemented in function `form_bs_logic`.
 
 The capacity curve for non-black start generator is simplifed and modeled as a piecewise linear function of time shown below.
@@ -142,7 +149,7 @@ All scenarios can be formulated as follows:
 \end{align*}
 ```
 
-## Generator Status and Output Constraint
+## Generator Dispatch Model
 The formulations are implemented in function `form_gen_logic`.
 - Generator ramping rate constraint
 ```math
@@ -163,7 +170,7 @@ y_{g,t} <= y_{g,t+1}
 \end{align*}
 ```
 
-## Load Pickup Constraint
+## Load Dispatch Model
 The formulations are implemented in function `form_load_logic`.
 - restored load cannot exceed its maximum values
 ```math
