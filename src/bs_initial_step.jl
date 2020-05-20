@@ -17,7 +17,7 @@ using CPLEX
 # using Gurobi
 using DataFrames
 using CSV
-
+using Plots
 
 @doc raw"""
 Solve restoration problem including the following constraints:
@@ -27,7 +27,7 @@ Solve restoration problem including the following constraints:
 - generator status and output constraint
 - load pick-up constraint
 """
-function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step)
+function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
     #----------------- Load solver ---------------
     # JuMP 0.18
@@ -35,7 +35,7 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
     # model = Model(solver=CplexSolver())
     # JuMP 0.19
     model = Model(CPLEX.Optimizer)
-    set_optimizer_attribute(model, "CPX_PARAM_EPGAP", 0.05)
+    set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
 
 
     #----------------- Load system data ----------------
@@ -188,6 +188,16 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
         end
         println("")
     end
+
+    # # plot total generation capacity
+    # gen_cap = [] # define an array to store the data
+    # for t in stages
+    #     gen_cap_t = sum(value(pg[g,t]) for g in keys(ref[:gen])) - sum(value(pl[l,t]) for l in keys(ref[:load]))
+    #     push!(gen_cap, gen_cap_t)
+    # end
+    # println(gen_cap)
+    # plot(stages, gen_cap, xlabel = "Time (mins)", ylabel = "Total Generation Cap")
+    # savefig("fig_gen_cap.png")
 
     #-----------Build a dictionary to store the changing point---------------
     CP = Dict();
@@ -533,15 +543,37 @@ end
 @doc raw"""
 form the nodal constraints:
 - voltage constraint
- - voltage constraints are only activated if the associated line is energized
-    - If x=0, vl_i_j=0, vl_i_j >= v_i - v_i_max, vl_i_j <= v_i - v_i_min
-    - If x=1, vl=0, vl >= v - v_max
- - voltage deviation should be limited
+    - voltage deviation should be limited
+    - voltage constraints are only activated if the associated line is energized
+```math
+\begin{align*}
+    & v^{\min}_{i} \leq v_{i,t} \leq v^{\max}_{i}\\
+    & v^{\min}_{i}x_{ij,t} \leq vl_{ij,t} \leq v^{\max}_{i}x_{ij,t}\\
+    & v^{\min}_{j}x_{ij,t} \leq vl_{ji,t} \leq v^{\max}_{j}x_{ij,t}\\
+    & v_{i,t} - v^{\max}_{i}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{i,t} - v^{\min}_{i}(1-x_{ij,t})\\
+    & v_{j,t} - v^{\max}_{j}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{i,t} - v^{\min}_{i}(1-x_{ij,t})
+\end{align*}
+```
 - angle difference constraint
+    - angle difference should be limited
      - angle difference constraints are only activated if the associated line is energized
-     - angle difference should be limited
+```math
+ \begin{align*}
+     & a^{\min}_{ij} \leq a_{i,t}-a_{j,t} \leq a^{\max}_{ij}\\
+     & a^{\min}_{ij}x_{ij,t} \leq al_{ij,t}-al_{ji,t} \leq a^{\max}_{ij}x_{ij,t}\\
+     & a_{i,t}-a{j,t}-a^{\max}_{ij}(1-x_{ij,t}) \leq al_{ij,t}-al_{ji,t} \leq a_{i,t}-a_{j,t}-a^{\min}_{ij}(1-x_{ij,t})
+ \end{align*}
+```
 - generator and bus energizing logics
-     - on-line generator cannot be shut down
+    - on-line generator cannot be shut down
+    - bus should be energized before the connected genertor being on
+```math
+\begin{align*}
+ & x_{ij,t} \geq x_{ij,t-1}\\
+ & u_{i,t} \geq x_{ij,t}\\
+ & u_{j,t} \geq x_{ij,t}
+\end{align*}
+```
 """
 function form_nodal(ref, model, stages, vl, vb, v, x, y, a, al, u, p, q, pg, pl, qg, ql)
     for (i,j) in keys(ref[:buspairs])
@@ -616,29 +648,10 @@ end
 branch (power flow) constraints
 - linearized power flow
 ```math
-\begin{align}
-%
-\mbox{sets:} & \nonumber \\
-& N \mbox{ - buses}\nonumber \\
-& R \mbox{ - reference buses}\nonumber \\
-& E, E^R \mbox{ - branches, forward and reverse orientation} \nonumber \\
-& G, G_i \mbox{ - generators and generators at bus $i$} \nonumber \\
-& L, L_i \mbox{ - loads and loads at bus $i$} \nonumber \\
-& S, S_i \mbox{ - shunts and shunts at bus $i$} \nonumber \\
-%
-\mbox{data:} & \nonumber \\
-& S^{gl}_k, S^{gu}_k \;\; \forall k \in G \nonumber \mbox{ - generator complex power bounds}\\
-& c_{2k}, c_{1k}, c_{0k} \;\; \forall k \in G \nonumber  \mbox{ - generator cost components}\\
-& v^l_i, v^u_i \;\; \forall i \in N \nonumber \mbox{ - voltage bounds}\\
-& S^d_k \;\; \forall k \in L \nonumber \mbox{ - load complex power consumption}\\
-& Y^s_{k} \;\; \forall k \in S \nonumber \mbox{ - bus shunt admittance}\\
-& Y_{ij}, Y^c_{ij}, Y^c_{ji} \;\; \forall (i,j) \in E \nonumber \mbox{ - branch pi-section parameters}\\
-& {T}_{ij} \;\; \forall (i,j) \in E \nonumber \mbox{ - branch complex transformation ratio}\\
-& s^u_{ij}  \;\; \forall (i,j) \in E \nonumber \mbox{ - branch apparent power limit}\\
-& i^u_{ij}  \;\; \forall (i,j) \in E \nonumber \mbox{ - branch current limit}\\
-& \theta^{\Delta l}_{ij}, \theta^{\Delta u}_{ij} \;\; \forall (i,j) \in E \nonumber \mbox{ - branch voltage angle difference bounds}\\
-%
-\end{align}
+\begin{align*}
+p_{bij,t}=G_{ii}(2vl_{ij,t}-x_{ij,t}) + G_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) + B_{ij}(al_{ij,t}-al_{ij,t})\\
+q_{bij,t}=-B_{ii}(2vl_{ij,t}-x_{ij,t}) - B_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) + G_{ij}(al_{ij,t}-al_{ij,t})\\
+\end{align*}
 ```
 """
 function form_branch(ref, model, stages, vl, al, x, u, p, q)
@@ -697,6 +710,20 @@ end
 
 @doc raw"""
 load pickup constraint
+- restored load cannot exceed its maximum values
+```math
+\begin{align*}
+& 0 \leq pl_{l,t} \leq pl^{\max}u_{l,t}\\
+& 0 \leq ql_{l,t} \leq ql^{\max}u_{l,t}\\
+\end{align*}
+```
+- restored load cannot be shed
+```math
+\begin{align*}
+& pl_{l,t-1} \leq pl_{l,t}\\
+& ql_{l,t-1} \leq ql_{l,t}\\
+\end{align*}
+```
 """
 function form_load_logic(ref, model, stages, pl, ql, u)
 
@@ -748,8 +775,23 @@ end
 @doc raw"""
 generator status and output constraint
 - generator ramping rate constraint
+```math
+\begin{align*}
+-Krp_{g} \leq pg_{g,t}-pg_{g,t+1} \leq Krp_{g}
+\end{align*}
+```
 - black-start unit is determined by the cranking power
+```math
+\begin{align*}
+y_{g,t}=1 \text{  if  } Pcr_{g}=0
+\end{align*}
+```
 - on-line generators cannot be shut down
+```math
+\begin{align*}
+y_{g,t} <= y_{g,t+1}
+\end{align*}
+```
 """
 function form_gen_logic(ref, model, stages, nstage, pg, y, Krp, Pcr)
     for g in keys(ref[:gen])
@@ -775,17 +817,28 @@ end
 
 @doc raw"""
 generator cranking constraint
-- This part is the key feature of black start. The logic is as follows:
-- Once a non-black start generator is on, that is, y[g]=1, then it needs to absorb the cranking power for its corresponding cranking time
+- Once a non-black start generator is on, that is, $y_{g,t}=1$, then it needs to absorb the cranking power for its corresponding cranking time
 - "After" the time step that this unit satisfies its cranking constraint, its power goes to zero; and from the next time step, it becomes a dispatchable generator
     - set non-black start unit generation limits based on "generator cranking constraint"
     - cranking constraint states if generator g has absorb the cranking power for its corresponding cranking time, it can produce power
-- Mathematically if there exist enough 1 for y[g], then enable this generator's generating capability
+- Mathematically if there exist enough 1 for $y_{g,t}=1$, then enable this generator's generating capability
 - There will be the following scenarios
-    - (1) generator is off, then y[g,t] - y[g,t-Tcr[g]] = 0, then pg[g,t] == 0
-    - (2) generator is on but cranking time not satisfied, then y[g,t] - y[g,t-Tcr[g]] = 1, then pg[g,t] == -Pcr[g]
-    - (3) generator is on and just satisfies the cranking time, then y[g,t] - y[g,t-Tcr[g]] = 0, y[g,t-Tcr[g]-1]=0, then pg[g,t] == 0
-    - (4) generator is on and bigger than satisfies the cranking time, then y[g,t] - y[g,t-Tcr[g]] = 0, y[g,t-Tcr[g]-1]=1, then 0 <= pg[g,t] <= pg_max
+    - (1) generator is off, then $y_{g,t}-y_{g,t-Tcr_{g}} = 0$, then $pg_{g,t} = 0$
+    - (2) generator is on but cranking time not satisfied, then $y_{g,t} - y_{g,t-Tcr_g} = 1$, then $pg_{g,t} = -Pcr_g$
+    - (3) generator is on and just satisfies the cranking time, then $y_{g,t} - y_{g,t-Tcr_g} = 0$, $y_{g,t-Tcr_g-1}=0$, then $pg_{g,t} = 0$
+    - (4) generator is on and bigger than satisfies the cranking time, then $y_{g,t} - y_{g,t-Tcr_g} = 0$, $y_{g,t-Tcr_g-1}=1$, then $0 <= pg_{g,t} <= pg^{\max}_{g}$
+- All scenarios can be formulated as follows:
+```math
+\begin{align*}
+& pg^{\min}_{g} \leq pg_{g,t} \leq pg^{\max}_{g}\\
+& \text{ if }t > Tcr_{g}+1\\
+& \quad\quad -Pcr_{g}(y_{g,t}-y_{g,Tcr_{g}}) \leq pg_{g,t} \leq pg^{\max}_{g}y_{g,t-Tcr_{g}-1}-Pcr_{g}(y_{g,t} - y_{g,t-Tcr_{g}}) \\
+& \text{ elseif }t \leq Tcr_{g}\\
+& \quad\quad pg_{g,t} = -Pcr_{g}y_{g,t}\\
+& \text{else }\\
+& \quad\quad pg_{g,t} = -Pcr_{g}(y_{g,t} - y_{g,1})
+\end{align*}
+```
 """
 function form_bs_logic(ref, model, stages, pg, qg, y, Pcr, Tcr)
     for t in stages

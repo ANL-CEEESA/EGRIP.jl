@@ -1,83 +1,181 @@
 # Mathematical Model
 
-As PowerModels implements a variety of power network optimization problems, the implementation is the best reference for precise mathematical formulations.  This section provides a complex number based mathematical specification for a prototypical AC Optimal Power Flow problem, to provide an overview of the typical mathematical models in PowerModels.
 
-
-## Sets and Parameters
-PowerModels implements a slightly generalized version of the AC Optimal Power Flow problem from [Matpower](http://www.pserc.cornell.edu/matpower/).  These generalizations make it possible for PowerModels to more accurately capture industrial transmission network datasets.  The core generalizations are,
-
-- Support for multiple load ($S^d_k$) and shunt ($Y^s_{k}$) components on each bus $i$
-- Line charging that supports a conductance and asymmetrical values ($Y^c_{ij}, Y^c_{ji}$)
-
-
+## Sets, Parameters and Variables
 ```math
-\begin{align}
+\begin{align*}
 %
-\mbox{sets:} & \nonumber \\
-& N \mbox{ - buses}\nonumber \\
-& R \mbox{ - reference buses}\nonumber \\
-& E, E^R \mbox{ - branches, forward and reverse orientation} \nonumber \\
-& G, G_i \mbox{ - generators and generators at bus $i$} \nonumber \\
-& L, L_i \mbox{ - loads and loads at bus $i$} \nonumber \\
-& S, S_i \mbox{ - shunts and shunts at bus $i$} \nonumber \\
+\mbox{Indices and Sets:} &  \\
+& i,j\in N \mbox{ - buses} \\
+& b\in B \mbox{ - branches} \\
+& g\in G \mbox{ - generators} \\
+& l\in L \mbox{ - loads} \\
 %
-\mbox{data:} & \nonumber \\
-& S^{gl}_k, S^{gu}_k \;\; \forall k \in G \nonumber \mbox{ - generator complex power bounds}\\
-& c_{2k}, c_{1k}, c_{0k} \;\; \forall k \in G \nonumber  \mbox{ - generator cost components}\\
-& v^l_i, v^u_i \;\; \forall i \in N \nonumber \mbox{ - voltage bounds}\\
-& S^d_k \;\; \forall k \in L \nonumber \mbox{ - load complex power consumption}\\
-& Y^s_{k} \;\; \forall k \in S \nonumber \mbox{ - bus shunt admittance}\\
-& Y_{ij}, Y^c_{ij}, Y^c_{ji} \;\; \forall (i,j) \in E \nonumber \mbox{ - branch pi-section parameters}\\
-& {T}_{ij} \;\; \forall (i,j) \in E \nonumber \mbox{ - branch complex transformation ratio}\\
-& s^u_{ij}  \;\; \forall (i,j) \in E \nonumber \mbox{ - branch apparent power limit}\\
-& i^u_{ij}  \;\; \forall (i,j) \in E \nonumber \mbox{ - branch current limit}\\
-& \theta^{\Delta l}_{ij}, \theta^{\Delta u}_{ij} \;\; \forall (i,j) \in E \nonumber \mbox{ - branch voltage angle difference bounds}\\
+\mbox{Parameters:} &  \\
+& Pcr_{g} \quad\forall g \in G \mbox{ - generator cranking power: power needed for the unit to be normally functional}\\
+& Tcr_{g} \quad\forall g \in G \mbox{ - generator cranking time: time needed for the unit to be normally functional}\\
+& Krp_{g} \quad\forall g \in G \mbox{ - generator ramping rate} \\
 %
-\end{align}
+\mbox{Binary Variables:} &  \\
+& x_{ij,t} \mbox{ - status of line $ij$ at time $t$}\\
+& y_{g,t} \mbox{ - status of generator $g$ at time $t$}\\
+& u_{i,t} \mbox{ - status of bus $i$ at time $t$}\\
+%
+\mbox{Continuous Variables:} &  \\
+& v_{i,t} \mbox{ - voltage of bus $i$ at time $t$}\\
+& a_{i,t} \mbox{ - relative angle of bus $i$ at time $t$}\\
+& vl_{ij,t} \mbox{ - supplementary variables for voltage of bus $i$ (connected to bus $j$) at time $t$}\\
+& vb_{i,t} \mbox{ - supplementary variables for voltage of bus $i$ at time $t$}\\
+& al_{ij,t} \mbox{ - supplementary variables for relative angle of bus $i$ (connected to bus $j$) at time $t$}\\
+& pl_{l,t} \mbox{ - active power of load $l$ at time $t$}\\
+& ql_{l,t} \mbox{ - reactive power of load $l$ at time $t$}\\
+& pg_{l,t} \mbox{ - active power of generator $g$ at time $t$}\\
+& qg_{l,t} \mbox{ - reactive power of generator $g$ at time $t$}\\
+& p_{bij,t} \mbox{ - active power flow of branch $b$ (bus $i$ and $j$) at time $t$}\\
+& q_{bij,t} \mbox{ - reactive power flow of branch $b$ (bus $i$ and $j$) at time $t$}\\
+\end{align*}
 ```
 
-## AC Optimal Power Flow
+## Branch Constraints
+The formulations of branch constraints are implemented in function `form_branch`.
+### Power Flow Equations
+The typical π-circuit line model with an ideal transformer is used to model the standard "AC" power flow:
+![Line model](fig_pi_line.png)
 
-A complete mathematical model is as follows,
+The Y-bus can be formulated as follows:
+![Y bus](fig_Y_bus.png)
 
+Three representations of AC power flow can be found below:
+![AC power flow](fig_ac_pf.png)
+
+(Ref: Molzahn, Daniel K., and Ian A. Hiskens. "A survey of relaxations and approximations of the power flow equations." *Foundations and Trends® in Electric Energy Systems* 4, no. 1-2 (2019): 1-221.)
+
+The standard "DC" approximation to AC power flow linearizes these equations by using the approximations $v_{i}=v_{j}=1$, $sinα_{ij}=α_{ij}$, $cosα_{ij}=1$, and $b_{l}>>g_{l}=0$ yielding:
 ```math
-\begin{align}
-%
-\mbox{variables: } & \nonumber \\
-& S^g_k \;\; \forall k\in G \mbox{ - generator complex power dispatch} \label{var_generation}\\
-& V_i \;\; \forall i\in N \label{var_voltage} \mbox{ - bus complex voltage}\\
-& S_{ij} \;\; \forall (i,j) \in E \cup E^R  \label{var_complex_power} \mbox{ - branch complex power flow}\\
-%
-\mbox{minimize: } & \sum_{k \in G} c_{2k} (\Re(S^g_k))^2 + c_{1k}\Re(S^g_k) + c_{0k} \label{eq_objective}\\
-%
-\mbox{subject to: } & \nonumber \\
-& \angle V_{r} = 0  \;\; \forall r \in R \label{eq_ref_bus}\\
-& S^{gl}_k \leq S^g_k \leq S^{gu}_k \;\; \forall k \in G  \label{eq_gen_bounds}\\
-& v^l_i \leq |V_i| \leq v^u_i \;\; \forall i \in N \label{eq_voltage_bounds}\\
-& \sum_{\substack{k \in G_i}} S^g_k - \sum_{\substack{k \in L_i}} S^d_k - \sum_{\substack{k \in S_i}} (Y^s_k)^* |V_i|^2 = \sum_{\substack{(i,j)\in E_i \cup E_i^R}} S_{ij} \;\; \forall i\in N \label{eq_kcl_shunt} \\
-& S_{ij} = \left( Y_{ij} + Y^c_{ij}\right)^* \frac{|V_i|^2}{|{T}_{ij}|^2} - Y^*_{ij} \frac{V_i V^*_j}{{T}_{ij}} \;\; \forall (i,j)\in E \label{eq_power_from}\\
-& S_{ji} = \left( Y_{ij} + Y^c_{ji} \right)^* |V_j|^2 - Y^*_{ij} \frac{V^*_i V_j}{{T}^*_{ij}} \;\; \forall (i,j)\in E \label{eq_power_to}\\
-& |S_{ij}| \leq s^u_{ij} \;\; \forall (i,j) \in E \cup E^R \label{eq_thermal_limit}\\
-& |I_{ij}| \leq i^u_{ij} \;\; \forall (i,j) \in E \cup E^R \label{eq_current_limit}\\
-& \theta^{\Delta l}_{ij} \leq \angle (V_i V^*_j) \leq \theta^{\Delta u}_{ij} \;\; \forall (i,j) \in E \label{eq_angle_difference}
-%
-\end{align}
+\begin{align*}
+p_{ij}=B_{ij}α_{ij}
+\end{align*}
 ```
 
-Note that for clarity of this presentation some model variants that PowerModels supports have been omitted (e.g. piecewise linear cost functions and HVDC lines).  Details about these variants is available in the [Matpower](http://www.pserc.cornell.edu/matpower/) documentation.
+Expanding the line flows about $v_{i}=v_{j}=1$, $α_{ij}=0$ and making small-angle approximations $sinα_{ij}=α_{ij}$ and $cosα_{ij}=1$ yielding linearized AC power flow
+```math
+\begin{align*}
+& p_{ij,t}=G_{ii}(2v_{i,t}-1) + G_{ij}(v_{i,t} + v_{j,t}-1) + B_{ij}\sinα_{ij}\\
+& q_{ij,t}=-B_{ii}(2v_{i,t}-1) - B_{ij}(v_{i,t} + v_{j,t}-1) + G_{ij}\cosα_{ij}\\
+\end{align*}
+```
+where voltage and reactive power are retained.
+
+(Ref: Trodden, Paul A., Waqquas Ahmed Bukhsh, Andreas Grothey, and Ken IM McKinnon. "Optimization-based islanding of power networks using piecewise linear AC power flow." *IEEE Transactions on Power Systems* 29, no. 3 (2013): 1212-1220.)
+
+### Linearized AC Power Flow Constraints Under Restoration
+```math
+\begin{align*}
+p_{bij,t}=G_{ii}(2vl_{ij,t}-x_{ij,t}) + G_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) + B_{ij}(al_{ij,t}-al_{ij,t})\\
+q_{bij,t}=-B_{ii}(2vl_{ij,t}-x_{ij,t}) - B_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) + G_{ij}(al_{ij,t}-al_{ij,t})\\
+\end{align*}
+```
 
 
-### Mapping to function names
-- Eq. $\eqref{var_generation}$ - variable_gen_power
-- Eq. $\eqref{var_voltage}$ - variable_bus_voltage
-- Eq. $\eqref{var_complex_power}$ - variable_branch_power
-- Eq. $\eqref{eq_objective}$ -
-- Eq. $\eqref{eq_ref_bus}$ -
-- Eq. $\eqref{eq_gen_bounds}$ -
-- Eq. $\eqref{eq_voltage_bounds}$ -
-- Eq. $\eqref{eq_kcl_shunt}$ -
-- Eq. $\eqref{eq_power_from}$ -
-- Eq. $\eqref{eq_power_to}$ -
-- Eq. $\eqref{eq_thermal_limit}$ -
-- Eq. $\eqref{eq_current_limit}$ -
-- Eq. $\eqref{eq_angle_difference}$ -
+## Nodal Constraints
+The formulations of nodal constraints are implemented in function `form_nodal`.
+- Voltage Constraint
+    - voltage deviation should be limited
+    - voltage constraints are only activated if the associated line is energized
+```math
+\begin{align*}
+    & v^{\min}_{i} \leq v_{i,t} \leq v^{\max}_{i}\\
+    & v^{\min}_{i}x_{ij,t} \leq vl_{ij,t} \leq v^{\max}_{i}x_{ij,t}\\
+    & v^{\min}_{j}x_{ij,t} \leq vl_{ji,t} \leq v^{\max}_{j}x_{ij,t}\\
+    & v_{i,t} - v^{\max}_{i}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{i,t} - v^{\min}_{i}(1-x_{ij,t})\\
+    & v_{j,t} - v^{\max}_{j}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{i,t} - v^{\min}_{i}(1-x_{ij,t})
+\end{align*}
+```
+- Angle Difference Constraint
+    - angle difference should be limited
+    - angle difference constraints are only activated if the associated line is energized
+```math
+ \begin{align*}
+     & a^{\min}_{ij} \leq a_{i,t}-a_{j,t} \leq a^{\max}_{ij}\\
+     & a^{\min}_{ij}x_{ij,t} \leq al_{ij,t}-al_{ji,t} \leq a^{\max}_{ij}x_{ij,t}\\
+     & a_{i,t}-a{j,t}-a^{\max}_{ij}(1-x_{ij,t}) \leq al_{ij,t}-al_{ji,t} \leq a_{i,t}-a_{j,t}-a^{\min}_{ij}(1-x_{ij,t})
+ \end{align*}
+```
+- Generator and Bus Energizing Logics
+    - on-line generator cannot be shut down
+    - bus should be energized before the connected genertor being on
+```math
+\begin{align*}
+ & x_{ij,t} \geq x_{ij,t-1}\\
+ & u_{i,t} \geq x_{ij,t}\\
+ & u_{j,t} \geq x_{ij,t}
+\end{align*}
+```
+
+## Generator Cranking Constraints
+The formulations of generator cranking constraints are implemented in function `form_bs_logic`.
+
+The capacity curve for non-black start generator is simplifed and modeled as a piecewise linear function of time shown below.
+
+![Capacity curve](fig_gen_cranking.png)
+
+(Ref: Qiu, Feng, and Peijie Li. "An integrated approach for power system restoration planning." *Proceedings of the IEEE* 105, no. 7 (2017): 1234-1252.)
+
+Once a non-black start generator is on, that is, $y_{g,t}=1$, then it needs to absorb the cranking power for its corresponding cranking time. "After" the time step that this unit satisfies its cranking constraint, its power goes to zero; and from the next time step, it becomes a dispatchable generator
+- set non-black start unit generation limits based on "generator cranking constraint"
+- cranking constraint states if generator g has absorb the cranking power for its corresponding cranking time, it can produce power
+Mathematically if there exist enough 1 for $y_{g,t}=1$, then enable this generator's generating capability. There will be the following scenarios
+- (1) generator is off, then $y_{g,t}-y_{g,t-Tcr_{g}} = 0$, then $pg_{g,t} = 0$
+- (2) generator is on but cranking time not satisfied, then $y_{g,t} - y_{g,t-Tcr_g} = 1$, then $pg_{g,t} = -Pcr_g$
+- (3) generator is on and just satisfies the cranking time, then $y_{g,t} - y_{g,t-Tcr_g} = 0$, $y_{g,t-Tcr_g-1}=0$, then $pg_{g,t} = 0$
+- (4) generator is on and bigger than satisfies the cranking time, then $y_{g,t} - y_{g,t-Tcr_g} = 0$, $y_{g,t-Tcr_g-1}=1$, then $0 <= pg_{g,t} <= pg^{\max}_{g}$
+All scenarios can be formulated as follows:
+```math
+\begin{align*}
+& pg^{\min}_{g} \leq pg_{g,t} \leq pg^{\max}_{g}\\
+& \text{ if }t > Tcr_{g}+1\\
+& \quad\quad -Pcr_{g}(y_{g,t}-y_{g,Tcr_{g}}) \leq pg_{g,t} \leq pg^{\max}_{g}y_{g,t-Tcr_{g}-1}-Pcr_{g}(y_{g,t} - y_{g,t-Tcr_{g}}) \\
+& \text{ elseif }t \leq Tcr_{g}\\
+& \quad\quad pg_{g,t} = -Pcr_{g}y_{g,t}\\
+& \text{else }\\
+& \quad\quad pg_{g,t} = -Pcr_{g}(y_{g,t} - y_{g,1})
+\end{align*}
+```
+
+## Generator Status and Output Constraint
+The formulations are implemented in function `form_gen_logic`.
+- Generator ramping rate constraint
+```math
+\begin{align*}
+-Krp_{g} \leq pg_{g,t}-pg_{g,t+1} \leq Krp_{g}
+\end{align*}
+```
+- Black-start unit is determined by the cranking power
+```math
+\begin{align*}
+y_{g,t}=1 \text{  if  } Pcr_{g}=0
+\end{align*}
+```
+- On-line generators cannot be shut down
+```math
+\begin{align*}
+y_{g,t} <= y_{g,t+1}
+\end{align*}
+```
+
+## Load Pickup Constraint
+The formulations are implemented in function `form_load_logic`.
+- restored load cannot exceed its maximum values
+```math
+\begin{align*}
+& 0 \leq pl_{l,t} \leq pl^{\max}u_{l,t}\\
+& 0 \leq ql_{l,t} \leq ql^{\max}u_{l,t}\\
+\end{align*}
+```
+- restored load cannot be shed
+```math
+\begin{align*}
+& pl_{l,t-1} \leq pl_{l,t}\\
+& ql_{l,t-1} \leq ql_{l,t}\\
+\end{align*}
+```

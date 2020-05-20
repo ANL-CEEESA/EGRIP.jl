@@ -1371,7 +1371,7 @@ function check_voltage_angle_differences(data::Dict{String,Any}, default_pad = 1
             angmax = branch["angmax"][c]
 
             if angmin <= -pi/2
-                warn(LOGGER, "this code only supports angmin values in -90 deg. to 90 deg., tightening the value on branch $i$(cnd_str) from $(rad2deg(angmin)) to -$(default_pad_deg) deg.")
+                # warn(LOGGER, "this code only supports angmin values in -90 deg. to 90 deg., tightening the value on branch $i$(cnd_str) from $(rad2deg(angmin)) to -$(default_pad_deg) deg.")
                 if haskey(data, "conductors")
                     branch["angmin"][c] = -default_pad
                 else
@@ -1381,7 +1381,7 @@ function check_voltage_angle_differences(data::Dict{String,Any}, default_pad = 1
             end
 
             if angmax >= pi/2
-                warn(LOGGER, "this code only supports angmax values in -90 deg. to 90 deg., tightening the value on branch $i$(cnd_str) from $(rad2deg(angmax)) to $(default_pad_deg) deg.")
+                # warn(LOGGER, "this code only supports angmax values in -90 deg. to 90 deg., tightening the value on branch $i$(cnd_str) from $(rad2deg(angmax)) to $(default_pad_deg) deg.")
                 if haskey(data, "conductors")
                     branch["angmax"][c] = default_pad
                 else
