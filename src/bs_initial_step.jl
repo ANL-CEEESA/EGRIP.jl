@@ -19,7 +19,7 @@ using DataFrames
 using CSV
 
 
-"""
+@doc raw"""
 Solve restoration problem including the following constraints:
 - linearized AC power flow constraint
 - steady-state voltage variation constraint
@@ -530,7 +530,7 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
 end
 
 
-"""
+@doc raw"""
 form the nodal constraints:
 - voltage constraint
  - voltage constraints are only activated if the associated line is energized
@@ -612,9 +612,34 @@ function form_nodal(ref, model, stages, vl, vb, v, x, y, a, al, u, p, q, pg, pl,
 end
 
 
-"""
+@doc raw"""
 branch (power flow) constraints
 - linearized power flow
+```math
+\begin{align}
+%
+\mbox{sets:} & \nonumber \\
+& N \mbox{ - buses}\nonumber \\
+& R \mbox{ - reference buses}\nonumber \\
+& E, E^R \mbox{ - branches, forward and reverse orientation} \nonumber \\
+& G, G_i \mbox{ - generators and generators at bus $i$} \nonumber \\
+& L, L_i \mbox{ - loads and loads at bus $i$} \nonumber \\
+& S, S_i \mbox{ - shunts and shunts at bus $i$} \nonumber \\
+%
+\mbox{data:} & \nonumber \\
+& S^{gl}_k, S^{gu}_k \;\; \forall k \in G \nonumber \mbox{ - generator complex power bounds}\\
+& c_{2k}, c_{1k}, c_{0k} \;\; \forall k \in G \nonumber  \mbox{ - generator cost components}\\
+& v^l_i, v^u_i \;\; \forall i \in N \nonumber \mbox{ - voltage bounds}\\
+& S^d_k \;\; \forall k \in L \nonumber \mbox{ - load complex power consumption}\\
+& Y^s_{k} \;\; \forall k \in S \nonumber \mbox{ - bus shunt admittance}\\
+& Y_{ij}, Y^c_{ij}, Y^c_{ji} \;\; \forall (i,j) \in E \nonumber \mbox{ - branch pi-section parameters}\\
+& {T}_{ij} \;\; \forall (i,j) \in E \nonumber \mbox{ - branch complex transformation ratio}\\
+& s^u_{ij}  \;\; \forall (i,j) \in E \nonumber \mbox{ - branch apparent power limit}\\
+& i^u_{ij}  \;\; \forall (i,j) \in E \nonumber \mbox{ - branch current limit}\\
+& \theta^{\Delta l}_{ij}, \theta^{\Delta u}_{ij} \;\; \forall (i,j) \in E \nonumber \mbox{ - branch voltage angle difference bounds}\\
+%
+\end{align}
+```
 """
 function form_branch(ref, model, stages, vl, al, x, u, p, q)
 
@@ -670,7 +695,7 @@ function form_branch(ref, model, stages, vl, al, x, u, p, q)
 end
 
 
-"""
+@doc raw"""
 load pickup constraint
 """
 function form_load_logic(ref, model, stages, pl, ql, u)
@@ -720,7 +745,7 @@ end
 
 
 
-"""
+@doc raw"""
 generator status and output constraint
 - generator ramping rate constraint
 - black-start unit is determined by the cranking power
@@ -748,7 +773,7 @@ function form_gen_logic(ref, model, stages, nstage, pg, y, Krp, Pcr)
     return model
 end
 
-"""
+@doc raw"""
 generator cranking constraint
 - This part is the key feature of black start. The logic is as follows:
 - Once a non-black start generator is on, that is, y[g]=1, then it needs to absorb the cranking power for its corresponding cranking time

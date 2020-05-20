@@ -14,9 +14,9 @@ using EGRIP
 # using .EGRIP
 
 # # ------------ Interactive --------------
-dir_case_network = "/Users/whoiszyc/Github/EGRIP.jl/src/cases/ieee_39bus/case39.m"
-dir_case_blackstart = "/Users/whoiszyc/Github/EGRIP.jl/src/cases/ieee_39bus/BS_generator.csv"
-dir_case_result = "/Users/whoiszyc/Github/EGRIP.jl/src/cases/ieee_39bus/results/"
+dir_case_network = "case39.m"
+dir_case_blackstart = "BS_generator.csv"
+dir_case_result = "results/"
 t_final = 500
 t_step = 250
 
