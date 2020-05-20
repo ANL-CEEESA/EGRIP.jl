@@ -551,7 +551,7 @@ form the nodal constraints:
     & v^{\min}_{i}x_{ij,t} \leq vl_{ij,t} \leq v^{\max}_{i}x_{ij,t}\\
     & v^{\min}_{j}x_{ij,t} \leq vl_{ji,t} \leq v^{\max}_{j}x_{ij,t}\\
     & v_{i,t} - v^{\max}_{i}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{i,t} - v^{\min}_{i}(1-x_{ij,t})\\
-    & v_{j,t} - v^{\max}_{j}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{i,t} - v^{\min}_{i}(1-x_{ij,t})
+    & v_{j,t} - v^{\max}_{j}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{j,t} - v^{\min}_{j}(1-x_{ij,t})
 \end{align*}
 ```
 - angle difference constraint
@@ -572,6 +572,24 @@ form the nodal constraints:
  & x_{ij,t} \geq x_{ij,t-1}\\
  & u_{i,t} \geq x_{ij,t}\\
  & u_{j,t} \geq x_{ij,t}
+\end{align*}
+```
+- bus energized constraints
+    - bus energized indicating generator energized
+    - on-line buses cannot be shut down
+```math
+\begin{align*}
+& v^{\min}u_{i,t} \leq vb_{i,t} \leq v^{\max}u_{i,t} \\
+& v_{i,t} - v^{\max}(1-u_{i,t}) \leq vb_{i,t} \leq v_{i,t} - v^{\min}(1-u_{i,t})\\
+& u_{g,t} = y_{g,t}\\
+& u_{i,t} \geq u_{i,t-1}
+\end{align*}
+```
+- nodal power balance constraint
+```math
+\begin{align*}
+& \sum_{b}p_{b,t}=\sum_{g\in b}pg_{g,t}-\sum_{l\in b}pl_{l,t}\\
+& \sum_{b}q_{b,t}=\sum_{g\in b}qg_{g,t}-\sum_{l\in b}ql_{l,t}
 \end{align*}
 ```
 """

@@ -95,7 +95,7 @@ The formulations of nodal constraints are implemented in function `form_nodal`.
     & v^{\min}_{i}x_{ij,t} \leq vl_{ij,t} \leq v^{\max}_{i}x_{ij,t}\\
     & v^{\min}_{j}x_{ij,t} \leq vl_{ji,t} \leq v^{\max}_{j}x_{ij,t}\\
     & v_{i,t} - v^{\max}_{i}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{i,t} - v^{\min}_{i}(1-x_{ij,t})\\
-    & v_{j,t} - v^{\max}_{j}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{i,t} - v^{\min}_{i}(1-x_{ij,t})
+    & v_{j,t} - v^{\max}_{j}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{j,t} - v^{\min}_{j}(1-x_{ij,t})
 \end{align*}
 ```
 - Angle Difference Constraint
@@ -118,6 +118,25 @@ The formulations of nodal constraints are implemented in function `form_nodal`.
  & u_{j,t} \geq x_{ij,t}
 \end{align*}
 ```
+- Bus Energized Constraints
+    - bus energized indicating generator energized
+    - on-line buses cannot be shut down
+```math
+\begin{align*}
+& v^{\min}u_{i,t} \leq vb_{i,t} \leq v^{\max}u_{i,t} \\
+& v_{i,t} - v^{\max}(1-u_{i,t}) \leq vb_{i,t} \leq v_{i,t} - v^{\min}(1-u_{i,t})\\
+& u_{g,t} = y_{g,t}\\
+& u_{i,t} \geq u_{i,t-1}
+\end{align*}
+```
+- Nodal Power Balance Constraint
+```math
+\begin{align*}
+& \sum_{b}p_{b,t}=\sum_{g\in b}pg_{g,t}-\sum_{l\in b}pl_{l,t}\\
+& \sum_{b}q_{b,t}=\sum_{g\in b}qg_{g,t}-\sum_{l\in b}ql_{l,t}
+\end{align*}
+```
+
 
 ## Generator Cranking Model
 The formulations of generator cranking constraints are implemented in function `form_bs_logic`.
