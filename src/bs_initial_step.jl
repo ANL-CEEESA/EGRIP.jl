@@ -561,7 +561,7 @@ form the nodal constraints:
  \begin{align*}
      & a^{\min}_{ij} \leq a_{i,t}-a_{j,t} \leq a^{\max}_{ij}\\
      & a^{\min}_{ij}x_{ij,t} \leq al_{ij,t}-al_{ji,t} \leq a^{\max}_{ij}x_{ij,t}\\
-     & a_{i,t}-a{j,t}-a^{\max}_{ij}(1-x_{ij,t}) \leq al_{ij,t}-al_{ji,t} \leq a_{i,t}-a_{j,t}-a^{\min}_{ij}(1-x_{ij,t})
+     & a_{i,t}-a_{j,t}-a^{\max}_{ij}(1-x_{ij,t}) \leq al_{ij,t}-al_{ji,t} \leq a_{i,t}-a_{j,t}-a^{\min}_{ij}(1-x_{ij,t})
  \end{align*}
 ```
 - generator and bus energizing logics
@@ -588,8 +588,8 @@ form the nodal constraints:
 - nodal power balance constraint
 ```math
 \begin{align*}
-& \sum_{b}p_{b,t}=\sum_{g\in b}pg_{g,t}-\sum_{l\in b}pl_{l,t}\\
-& \sum_{b}q_{b,t}=\sum_{g\in b}qg_{g,t}-\sum_{l\in b}ql_{l,t}
+& \sum_{b\in i}p_{b,t}=\sum_{g\in i}pg_{g,t}-\sum_{l\in i}pl_{l,t}-Gs(2vb_{i,t}-u_{i,t})\\
+& \sum_{b\in i}q_{b,t}=\sum_{g\in i}qg_{g,t}-\sum_{l\in i}ql_{l,t}+Bs(2vb_{i,t}-u_{i,t})
 \end{align*}
 ```
 """
