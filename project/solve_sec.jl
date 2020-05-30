@@ -15,12 +15,10 @@ using EGRIP
 
 # # ------------ Interactive --------------
 dir_case_network = "case39.m"
-dir_case_blackstart = "BS_generator.csv"
-dir_case_result = "results/"
-t_final = 300
-t_step = 100
+dir_case_blackstart = "BS_generator_2.csv"
+dir_case_result = "results_sec/"
 gap = 0.15
-solve_restoration_full(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+ref, bus_set = solve_section(dir_case_network, dir_case_blackstart, dir_case_result, gap)
 
 
 # # -------------- Command line --------------

@@ -11,32 +11,25 @@
 
 
 # ----------------- Load modules from registered package----------------
-using LinearAlgebra, JuMP
+using LinearAlgebra
+using JuMP
 using CPLEX
-# using LightGraphs, LightGraphsFlows
+# using LightGraphs
+# using LightGraphsFlows
 # using Gurobi
 using DataFrames
 using CSV
-using Plots
+using PowerModels
+
 
 @doc raw"""
-Solve restoration problem including the following constraints:
-- linearized AC power flow constraint
-- steady-state voltage variation constraint
-- generator cranking constraint
-- generator status and output constraint
-- load pick-up constraint
+Solve sectionalization problem for restoration preparedness
+- Problem type: The restoration problem could be partial or full restorations
+- Inputs:
+- Output:
+- Constraints:
 """
-function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
-
-    #----------------- Load solver ---------------
-    # JuMP 0.18
-    # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
-    # model = Model(solver=CplexSolver())
-    # JuMP 0.19
-    model = Model(CPLEX.Optimizer)
-    set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
-
+function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, gap)
 
     #----------------- Load system data ----------------
     # Load system data in PSSE format
@@ -44,8 +37,228 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
     # We can employ MatPower function to do this
 
     # Convert data from MPC format to Julia Dict (PowerModels format)
-    data0 = parse_mfile(dir_case_network)
-    ref = build_ref(data0)[:nw][0]
+    data0 = PowerModels.parse_file(dir_case_network)
+    ref = PowerModels.build_ref(data0)[:nw][0]
+    println("system data built")
+
+    # Count numbers and generate iterators
+    n_gen = length(ref[:gen])
+    n_load = length(ref[:load])
+    n_bus = length(ref[:bus])
+    n_line = length(ref[:arcs])/2
+    iter_gen = 1:n_gen
+    iter_load = 1:n_load
+    iter_bus = 1:n_bus
+    iter_line = 1:n_line
+    println("Number of generators: ", n_gen)
+    println("Number of loads: ", n_load)
+    println("Number of buses: ", n_bus)
+    println("Number of lines: ", n_line)
+    println("system iterator built")
+
+    # get line set
+    set_line = Set([])
+    for i in keys(ref[:buspairs])
+        push!(set_line,ref[:buspairs][i]["branch"])
+    end
+
+    # split bus into different sets
+    set_bus = Set([])
+    set_bus_gen = Set([])
+    set_bus_load = Set([])
+    # loop all bus and split them into load and gen buses
+    for i in keys(ref[:bus])
+        push!(set_bus,i)
+        if ref[:bus][i]["bus_type"]==1
+            push!(set_bus_load,i)
+        else
+            push!(set_bus_gen,i)
+        end
+    end
+    println("bus set built")
+
+    # read restoration data
+    bs_data = CSV.read(dir_case_blackstart)
+    println(bs_data)
+
+    # bus set with black-start generators
+    ngen_bs = sum(bs_data[:,6])
+    idx = findall(x->x==1,bs_data[:,6])
+    # convert bs gen bus from array to set
+    set_bus_J = Set(bs_data[idx,2])
+    num_J = length(set_bus_J)
+    println("black start data built")
+
+    # get non-bs gen set
+    set_bus_gen_nbs = setdiff(set_bus_gen, set_bus_J)
+    println(set_bus_gen_nbs)
+    # union of nbs gen and load
+    set_bus_I = union(set_bus_gen_nbs,set_bus_load)
+    num_I = length(set_bus_I)
+
+    #----------------- Load solver ---------------
+    #----JuMP 0.18----
+    # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
+    # model = Model(solver=CplexSolver())
+    #----JuMP 0.19----
+    model = Model(CPLEX.Optimizer)
+    set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
+
+    # # ------------Define decision variable ---------------------
+    # z_vj represents the decision whether a bus v is assigned to BS generator j
+    @variable(model, z[set_bus,set_bus_J], Bin)
+    # f_lj represents the number of unit ﬂows on line l ﬂowing to section j
+    @variable(model, f[set_line,set_bus_J], Int)
+    # y_lj is a binary indicator variable, indicating
+    # whether line l is assigned to section j
+    @variable(model, y[set_line,set_bus_J], Bin)
+
+    # # ------------Define constraints ---------------------
+    # eq (1)
+    for j in set_bus_J
+        for i in set_bus_I
+            # get lines that are connected to bus i
+            sum_f = 0
+            for l_i_j in ref[:bus_arcs][i]
+                idx_line = l_i_j[1]
+                sum_f = sum_f + f[idx_line, j]
+            end
+            @constraint(model, sum_f==z[i, j])
+        end
+    end
+    println("eq (1) added")
+
+    # eq (2)
+    # in our case: set_bus = set_bus_I + set_bus_J
+    # so for now it is empyty
+
+    # eq (3)
+    for j in set_bus_J
+        @constraint(model, sum(f[:,j]) == sum(z[k,39] for k in set_bus_I))
+    end
+    println("eq (3) added")
+
+    # eq (4)
+    for i in set_bus
+        @constraint(model, sum(z[i,:])==1)
+    end
+    println("eq (4) added")
+
+    # eq (5)
+    for j in set_bus_J
+        for jp in setdiff(set_bus_J,j)
+            # get lines that are connected to bus jp
+            delta_jp = Set([])
+            for l_i_j in ref[:bus_arcs][jp]
+                push!(delta_jp, l_i_j[1])
+            end
+            L_delta_jp = setdiff(set_line, delta_jp)
+
+            for l in L_delta_jp
+                @constraint(model, f[l, j] >= -y[l, j]*num_I)
+                @constraint(model,  f[l, j] <= y[l, j]*num_I)
+            end
+        end
+    end
+    println("eq (5) added")
+
+    # eq (6)
+    for v in set_bus
+        # get lines that are connected to bus v
+        num_delta_v = length(ref[:bus_arcs][v])
+        delta_v = Set([])
+        for l_i_j in ref[:bus_arcs][v]
+            push!(delta_v, l_i_j[1])
+        end
+
+        for j in set_bus_J
+            @constraint(model, sum(y[l,j] for l in delta_v) <= z[v,j]*num_delta_v)
+        end
+    end
+    println("eq (6) added")
+
+    # eq (7)
+    # in our case: set_bus = set_bus_I + set_bus_J
+    # so for now it is empyty
+
+
+    # eq (8)
+    for j in set_bus_J
+        p_sum = 0
+        for i in set_bus_I
+            # get all generator indices at bus i
+            idx_gen = ref[:bus_gens][i]
+            if !isempty(idx_gen)
+                for id in idx_gen
+                    p_sum = p_sum + ref[:gen][id]["pg"]*z[i,j]
+                end
+            end
+            # get all load indices at bus i
+            idx_load = ref[:bus_loads][i]
+            if !isempty(idx_load)
+                for id in idx_load
+                    p_sum = p_sum - ref[:load][id]["pd"]*z[i,j]
+                end
+            end
+        end
+        @constraint(model, p_sum >= -100)
+        @constraint(model, p_sum <= 100)
+    end
+    println("eq (8) added")
+
+    # we can define an empty objective
+    @objective(model, Min, 0)
+
+    #------------- Build and solve model----------------
+    # buildInternalModel(model)
+    # m = model.internalModel.inner
+    # CPLEX.set_logfile(m.env, string(dir, "log.txt"))
+
+    status = optimize!(model)
+    println("The objective value is: ", objective_value(model))
+
+    println("")
+    for j in set_bus_J
+        println("Islanding: ", j)
+        for i in set_bus_I
+             if value(z[i,j]) == 1
+                 print("bus ", i, ", ")
+             end
+        end
+        println("")
+    end
+
+    return ref
+
+end
+
+
+@doc raw"""
+Solve restoration problem
+- Problem type: The restoration problem could be partial or full restorations
+- Inputs: A set of restoration data in csv format and original system data
+    - restoration_gen: specify initial generator status, cranking specifications and black-start generators
+    - restoration_bus: specify initial bus status and its load priority, from where the problem type (partial or full restorations) can be determined
+    - restoration_line: specify initial line status, from where the problem type (partial or full restorations) can be determined
+    - original system data in matpower or PSS/E format
+- Output: Restoration plans
+- Constraints:
+    - linearized AC power flow constraint
+    - steady-state voltage variation constraint
+    - generator cranking constraint
+    - generator status and output constraint
+    - load pick-up constraint
+"""
+function solve_restoration_full(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+
+    #----------------- Load system data ----------------
+    # Load system data in PSSE format
+    # Convert data from PSSE format to MPC format (MatPower format)
+    # We can employ MatPower function to do this
+
+    # Convert data from MPC format to Julia Dict (PowerModels format)
+    data0 = PowerModels.parse_file(dir_case_network)
+    ref = PowerModels.build_ref(data0)[:nw][0]
 
     # Count numbers and generate iterators
     ngen = 10;
@@ -86,6 +299,15 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
         Tcr[g] = ceil(bs_data[g,4]/time_step) # cranking time: time needed for the unit to be normally functional
         Krp[g] = bs_data[g,5]*time_step # ramping rate
     end
+
+
+    #----------------- Load solver ---------------
+    # JuMP 0.18
+    # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
+    # model = Model(solver=CplexSolver())
+    # JuMP 0.19
+    model = Model(CPLEX.Optimizer)
+    set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
 
     # ------------Define decision variable ---------------------
     @variable(model, x[keys(ref[:buspairs]),stages], Bin); # status of line at time t
@@ -188,16 +410,6 @@ function solve_restoration(dir_case_network, dir_case_blackstart, dir_case_resul
         end
         println("")
     end
-
-    # # plot total generation capacity
-    # gen_cap = [] # define an array to store the data
-    # for t in stages
-    #     gen_cap_t = sum(value(pg[g,t]) for g in keys(ref[:gen])) - sum(value(pl[l,t]) for l in keys(ref[:load]))
-    #     push!(gen_cap, gen_cap_t)
-    # end
-    # println(gen_cap)
-    # plot(stages, gen_cap, xlabel = "Time (mins)", ylabel = "Total Generation Cap")
-    # savefig("fig_gen_cap.png")
 
     #-----------Build a dictionary to store the changing point---------------
     CP = Dict();

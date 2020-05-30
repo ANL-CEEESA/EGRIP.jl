@@ -4,7 +4,7 @@
 use `@autodocs` block to splice the docstrings
 ```@autodocs
 Modules = [EGRIP]
-Pages   = ["bs_initial_step.jl"]
+Pages   = ["restoration.jl"]
 Order   = [:type, :function]
 Private  = true
 ```
