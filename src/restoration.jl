@@ -45,7 +45,7 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
     n_gen = length(ref[:gen])
     n_load = length(ref[:load])
     n_bus = length(ref[:bus])
-    n_line = length(ref[:arcs])/2
+    n_line = length(ref[:branch])/2
     iter_gen = 1:n_gen
     iter_load = 1:n_load
     iter_bus = 1:n_bus
@@ -61,6 +61,9 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
     for i in keys(ref[:buspairs])
         push!(set_line,ref[:buspairs][i]["branch"])
     end
+    println("set_line")
+    println(set_line)
+    println("")
 
     # split bus into different sets
     set_bus = Set([])
@@ -68,33 +71,48 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
     set_bus_load = Set([])
     # loop all bus and split them into load and gen buses
     for i in keys(ref[:bus])
-        push!(set_bus,i)
+        push!(set_bus, i)
         if ref[:bus][i]["bus_type"]==1
-            push!(set_bus_load,i)
+            push!(set_bus_load, i)
         else
-            push!(set_bus_gen,i)
+            push!(set_bus_gen, i)
         end
     end
+    println("bus: ")
+    println(set_bus)
+    println("gen bus: ")
+    println(set_bus_gen)
+    println("load bus: ")
+    println(set_bus_load)
     println("bus set built")
+    println("")
 
     # read restoration data
     bs_data = CSV.read(dir_case_blackstart)
     println(bs_data)
+    println("")
 
     # bus set with black-start generators
-    ngen_bs = sum(bs_data[:,6])
-    idx = findall(x->x==1,bs_data[:,6])
+    ngen_bs = sum(bs_data[:, 6])
+    idx = findall(x->x==1, bs_data[:, 6])
     # convert bs gen bus from array to set
-    set_bus_J = Set(bs_data[idx,2])
+    set_bus_J = Set(bs_data[idx, 2])
     num_J = length(set_bus_J)
     println("black start data built")
+    println("")
 
     # get non-bs gen set
     set_bus_gen_nbs = setdiff(set_bus_gen, set_bus_J)
+    println("non bs gen")
     println(set_bus_gen_nbs)
+    println("")
+
     # union of nbs gen and load
-    set_bus_I = union(set_bus_gen_nbs,set_bus_load)
+    set_bus_I = union(set_bus_gen_nbs, set_bus_load)
     num_I = length(set_bus_I)
+    println("set_bus_I")
+    println(set_bus_I)
+    println("")
 
     #----------------- Load solver ---------------
     #----JuMP 0.18----
@@ -106,12 +124,12 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
 
     # # ------------Define decision variable ---------------------
     # z_vj represents the decision whether a bus v is assigned to BS generator j
-    @variable(model, z[set_bus,set_bus_J], Bin)
+    @variable(model, z[set_bus, set_bus_J], Bin)
     # f_lj represents the number of unit ﬂows on line l ﬂowing to section j
-    @variable(model, f[set_line,set_bus_J], Int)
+    @variable(model, f[set_line, set_bus_J], Int)
     # y_lj is a binary indicator variable, indicating
     # whether line l is assigned to section j
-    @variable(model, y[set_line,set_bus_J], Bin)
+    @variable(model, y[set_line, set_bus_J], Bin)
 
     # # ------------Define constraints ---------------------
     # eq (1)
@@ -124,6 +142,7 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
                 sum_f = sum_f + f[idx_line, j]
             end
             @constraint(model, sum_f==z[i, j])
+            println(sum_f)
         end
     end
     println("eq (1) added")
@@ -134,7 +153,7 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
 
     # eq (3)
     for j in set_bus_J
-        @constraint(model, sum(f[:,j]) == sum(z[k,39] for k in set_bus_I))
+        @constraint(model, sum(f[:,j]) == sum(z[k,j] for k in set_bus_I))
     end
     println("eq (3) added")
 
@@ -172,7 +191,7 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
         end
 
         for j in set_bus_J
-            @constraint(model, sum(y[l,j] for l in delta_v) <= z[v,j]*num_delta_v)
+            @constraint(model, sum(y[l, j] for l in delta_v) <= z[v, j]*num_delta_v)
         end
     end
     println("eq (6) added")
@@ -190,19 +209,19 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
             idx_gen = ref[:bus_gens][i]
             if !isempty(idx_gen)
                 for id in idx_gen
-                    p_sum = p_sum + ref[:gen][id]["pg"]*z[i,j]
+                    p_sum = p_sum + ref[:gen][id]["pg"]*z[i, j]
                 end
             end
             # get all load indices at bus i
             idx_load = ref[:bus_loads][i]
             if !isempty(idx_load)
                 for id in idx_load
-                    p_sum = p_sum - ref[:load][id]["pd"]*z[i,j]
+                    p_sum = p_sum - ref[:load][id]["pd"]*z[i, j]
                 end
             end
         end
-        @constraint(model, p_sum >= -100)
-        @constraint(model, p_sum <= 100)
+        @constraint(model, p_sum >= -5)
+        @constraint(model, p_sum <= 5)
     end
     println("eq (8) added")
 
@@ -217,18 +236,41 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
     status = optimize!(model)
     println("The objective value is: ", objective_value(model))
 
+    # store and print the results
+    network_section = Dict()   # dictionary to store sectionalization results
+    for j in set_bus_J
+        network_section[j]=[]
+    end
     println("")
     for j in set_bus_J
-        println("Islanding: ", j)
+        println("Islands: ", j)
         for i in set_bus_I
-             if value(z[i,j]) == 1
+             if abs(value(z[i, j]) -1 ) < 1e-2
+                 push!(network_section[j], i)
                  print("bus ", i, ", ")
              end
         end
         println("")
     end
 
-    return ref
+    z_val = Dict()
+    for j in set_bus_J
+        z_val[j] = Dict()
+        for i in set_bus
+            z_val[j][i] = Int(round(value(z[i, j])))
+        end
+    end
+
+    f_val = Dict()
+    for j in set_bus_J
+        f_val[j] = Dict()
+        for l in set_line
+            f_val[j][l] = Int(round(value(f[l, j])))
+        end
+    end
+
+
+    return ref, network_section, z_val, f_val, set_bus, set_line
 
 end
 
