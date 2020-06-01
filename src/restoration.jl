@@ -19,6 +19,7 @@ using CPLEX
 # using Gurobi
 using DataFrames
 using CSV
+using JSON
 using PowerModels
 
 
@@ -252,25 +253,30 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
         end
         println("")
     end
+    println("")
 
     z_val = Dict()
-    for j in set_bus_J
-        z_val[j] = Dict()
-        for i in set_bus
-            z_val[j][i] = Int(round(value(z[i, j])))
+    for i in set_bus
+        z_val[i] = Dict()
+        for j in set_bus_J
+            z_val[i][j] = Int(round(value(z[i, j])))
         end
     end
 
     f_val = Dict()
-    for j in set_bus_J
-        f_val[j] = Dict()
-        for l in set_line
-            f_val[j][l] = Int(round(value(f[l, j])))
+    for l in set_line
+        f_val[l] = Dict()
+        f_val[l]["line_to_buspairs"] = (ref[:branch][l]["f_bus"], ref[:branch][l]["t_bus"])
+        for j in set_bus_J
+            f_val[l][j] = Int(round(value(f[l, j])))
         end
+    end
+    for l in set_line
+        f_val[(ref[:branch][l]["f_bus"], ref[:branch][l]["t_bus"])] = [[l], [f_val[l][j] for j in set_bus_J]]
     end
 
 
-    return ref, network_section, z_val, f_val, set_bus, set_line
+    return ref, network_section, z_val, f_val
 
 end
 
@@ -291,32 +297,77 @@ Solve restoration problem
     - generator status and output constraint
     - load pick-up constraint
 """
-function solve_restoration_full(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+function solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
     #----------------- Load system data ----------------
-    # Load system data in PSSE format
-    # Convert data from PSSE format to MPC format (MatPower format)
-    # We can employ MatPower function to do this
+    # check network data format and load accordingly
+    if network_data_format == "json"
+        println("print dir_case_network")
+        println(dir_case_network)
+        ref = Dict()
+        ref = JSON.parsefile(dir_case_network)  # parse and transform data
+        println("convert key type from string to symbol and int")
+        ref = Dict([Symbol(key) => val for (key, val) in pairs(ref)])
+        ref[:gen] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:gen])])
+        ref[:bus] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus])])
+        ref[:bus_gens] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus_gens])])
+        ref[:bus_arcs] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus_arcs])])
+        ref[:bus_loads] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus_loads])])
+        ref[:bus_shunts] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(ref[:bus_shunts])])
+        ref[:branch] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:branch])])
+        ref[:load] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:load])])
+        ref[:buspairs] = Dict([ (parse(Int, split(key, ['(', ',', ')'])[2]),
+            parse(Int, split(key, ['(', ',', ')'])[3]))=> val for (key, val) in pairs(ref[:buspairs])])
+        println("complete loading network data in json format")
+    elseif network_data_format == "matpower"
+        # Convert data from matpower format to Julia Dict (PowerModels format)
+        data0 = PowerModels.parse_file(dir_case_network)
+        ref = PowerModels.build_ref(data0)[:nw][0]
+        println("complete loading network data in matpower format")
+    elseif network_data_format == "psse"
+        # Convert data from psse to Julia Dict (PowerModels format)
+        data0 = PowerModels.parse_file(dir_case_network)
+        ref = PowerModels.build_ref(data0)[:nw][0]
+        println("complete loading network data in psse format")
+    else
+        println("un-supported network data format")
+    end
 
-    # Convert data from MPC format to Julia Dict (PowerModels format)
-    data0 = PowerModels.parse_file(dir_case_network)
-    ref = PowerModels.build_ref(data0)[:nw][0]
+    # check data
+    println("")
+    println("bus")
+    println(keys(ref[:bus]))
+
+    println("bus arcs")
+    println(keys(ref[:bus_arcs]))
+
+    println("bus gen")
+    println(keys(ref[:bus_gens]))
+
+    println("bus pairs")
+    println(keys(ref[:buspairs]))
+
+    println("gen")
+    println(keys(ref[:gen]))
+
+    println("arcs")
+    println(keys(ref[:arcs]))
 
     # Count numbers and generate iterators
-    ngen = 10;
-    nload = 21;
-    gen = 1:ngen;
-    load = 1:nload;
+    ngen = length(keys(ref[:gen]));
+    nload = length(keys(ref[:load]));
+    # gen = 1:ngen;
+    # load = 1:nload;
 
     # Load generation data
     # Generation data will be further adjusted based on the time and resolution specifications
 
     bs_data = CSV.read(dir_case_blackstart)
 
-    # Pre-define array
-    Tcr = Array{Float64,1}(undef, ngen)
-    Pcr = Array{Float64,1}(undef, ngen)
-    Krp = Array{Float64,1}(undef, ngen)
+    # Define dictionary
+    Tcr = Dict()
+    Pcr = Dict()
+    Krp = Dict()
 
     for g in keys(ref[:gen])
         Pcr[g] = bs_data[g,3]/100 # cranking power: power needed for the unit to be normally functional
@@ -819,7 +870,7 @@ form the nodal constraints:
  \end{align*}
 ```
 - generator and bus energizing logics
-    - on-line generator cannot be shut down
+    - energized line cannot be shut down
     - bus should be energized before the connected genertor being on
 ```math
 \begin{align*}
@@ -830,7 +881,7 @@ form the nodal constraints:
 ```
 - bus energized constraints
     - bus energized indicating generator energized
-    - on-line buses cannot be shut down
+    - energized buses cannot be shut down
 ```math
 \begin{align*}
 & v^{\min}u_{i,t} \leq vb_{i,t} \leq v^{\max}u_{i,t} \\
@@ -848,7 +899,13 @@ form the nodal constraints:
 ```
 """
 function form_nodal(ref, model, stages, vl, vb, v, x, y, a, al, u, p, q, pg, pl, qg, ql)
+    println("")
+    println("formulating nodal constraints")
+
     for (i,j) in keys(ref[:buspairs])
+
+        println("creating slack variables for nodal constraint for bus pair: ", i, ", ", j)
+
         for t in stages
             # voltage constraints
             # voltage constraints are only activated if the associated line is energized
@@ -870,7 +927,7 @@ function form_nodal(ref, model, stages, vl, vb, v, x, y, a, al, u, p, q, pg, pl,
             @constraint(model, al[(i,j),t] - al[(j,i),t] >= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmax"]*(1-x[(i,j),t]))
             @constraint(model, al[(i,j),t] - al[(j,i),t] <= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmin"]*(1-x[(i,j),t]))
 
-            # on-line generator cannot be shut down
+            # energized line cannot be shut down
             if t > 1
                 @constraint(model, x[(i,j), t] >= x[(i,j), t-1])
             end
@@ -883,7 +940,8 @@ function form_nodal(ref, model, stages, vl, vb, v, x, y, a, al, u, p, q, pg, pl,
     end
 
     # nodal (bus) constraints
-    for (i,bus) in ref[:bus]  # loop its keys and entries
+    for (i, bus) in ref[:bus]  # loop its keys and entries
+        println("formulating nodal constraint for bus ", i)
         for t in stages
             bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
@@ -928,7 +986,10 @@ q_{bij,t}=-B_{ii}(2vl_{ij,t}-x_{ij,t}) - B_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) 
 """
 function form_branch(ref, model, stages, vl, al, x, u, p, q)
 
-    for (i,branch) in ref[:branch]
+    for (i, branch) in ref[:branch]
+
+        println("formulating branch constraint for branch ", i)
+
         for t in stages
             # create indices for variables
             f_idx = (i, branch["f_bus"], branch["t_bus"])
@@ -998,6 +1059,8 @@ load pickup constraint
 ```
 """
 function form_load_logic(ref, model, stages, pl, ql, u)
+
+    println("formulating load logic constraints")
 
     for t in stages
         for l in keys(ref[:load])
@@ -1113,6 +1176,9 @@ generator cranking constraint
 ```
 """
 function form_bs_logic(ref, model, stages, pg, qg, y, Pcr, Tcr)
+
+    println("formulating black-start constraints")
+
     for t in stages
         for g in keys(ref[:gen])
             if t > Tcr[g] + 1

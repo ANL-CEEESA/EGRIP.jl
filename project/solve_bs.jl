@@ -16,11 +16,12 @@ using EGRIP
 # # ------------ Interactive --------------
 dir_case_network = "case39.m"
 dir_case_blackstart = "BS_generator.csv"
+network_data_format = "matpower"
 dir_case_result = "results/"
 t_final = 300
 t_step = 100
 gap = 0.15
-solve_restoration_full(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
 
 # # -------------- Command line --------------
