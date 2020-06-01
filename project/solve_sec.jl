@@ -67,10 +67,15 @@ end
 
 # delete boundary arcs in bus_arcs
 arc_delete = []
+# loop all sections
 for i in keys(network_section)
+    # loop bus_arcs
     for (idx_bus, all_arc_bus_bus) in section_ref[i][:bus_arcs]
+         # loop all arcs connected to one bus
         for arc_bus_bus in all_arc_bus_bus
-            if isempty(findall(x-> x==arc_bus_bus[3], network_section[i]))
+            # as long as one of the two terminal buses is not in this section
+            # delete this arc
+            if isempty(findall(x->x==arc_bus_bus[2], network_section[i])) | isempty(findall(x->x==arc_bus_bus[3], network_section[i]))
                 idx_delete = findall(x->x==arc_bus_bus, all_arc_bus_bus)
                 deleteat!(all_arc_bus_bus, idx_delete)
                 push!(arc_delete, arc_bus_bus)
@@ -82,7 +87,7 @@ end
 # buspairs
 for i in keys(network_section)
     for k in keys(ref[:buspairs])
-        if !isempty(findall(x-> x==k[1],network_section[i])) && !isempty(findall(x-> x==k[2],network_section[i]))
+        if !isempty(findall(x-> x==k[1],network_section[i])) & !isempty(findall(x-> x==k[2],network_section[i]))
             section_ref[i][:buspairs][k] = ref[:buspairs][k]
         end
     end
@@ -104,7 +109,7 @@ for (idx_br, info_br) in ref[:branch]
     t_bus = info_br["t_bus"]
     skip_br_section = []
     for (idx_sec, bus_sec) in network_section
-        if !isempty(findall(x->x==f_bus, bus_sec)) && !isempty(findall(x->x==t_bus, bus_sec))
+        if !isempty(findall(x->x==f_bus, bus_sec)) & !isempty(findall(x->x==t_bus, bus_sec))
             section_ref[idx_sec][:branch][idx_br] = info_br
         else
             push!(skip_br_section, idx_sec)
@@ -158,15 +163,16 @@ dict[:branch] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dic
 dict[:load] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:load])])
 dict[:buspairs] = Dict([ (parse(Int, split(key, ['(', ',', ')'])[2]),
     parse(Int, split(key, ['(', ',', ')'])[3]))=> val for (key, val) in pairs(dict[:buspairs])])
-
+dict[:arcs] = [Tuple(val) for (key,val) in pairs(dict[:arcs])]
+dict[:bus_arcs] = Dict([key=>[Tuple(arc) for arc in val] for (key,val) in pairs(dict[:bus_arcs])])
 # ------------ Interactive --------------
 dir_case_network = string(dir_case_result, a[1], ".json")
 dir_case_blackstart = "BS_generator.csv"
 network_data_format = "json"
 dir_case_result = "results_sec/"
-t_final = 300
+t_final = 500
 t_step = 100
-gap = 0.15
+gap = 0.5
 solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
 # # -------------- Command line --------------

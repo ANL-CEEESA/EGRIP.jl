@@ -17,12 +17,34 @@ In addition, the following paper describes a holistic toolkit with different mod
 
 
 ## 1. Restoration time estimation
-
+| **Paper** | **Technical Features** | **Test Systems** |
+| ------------- | ------------- | ----- |
+| ------------- | ------------- | ----- |
 
 ## 2. Sectionalization
+| **Paper** | **Technical Features** | **Test Systems** |
+| ------------- | ------------- | ----- |
+| ------------- | ------------- | ----- |
+
 
 ## 3. Generator start-up optimization
+| **Paper** | **Technical Features** | **Test Systems** |
+| ------------- | ------------- | ----- |
+| ------------- | ------------- | ----- |
+
 
 ## 4. Path search
+| **Paper** | **Technical Features** | **Test Systems** |
+| ------------- | ------------- | ----- |
+| ------------- | ------------- | ----- |
+
 
 ## 5. Load pickup
+| **Paper** | **Technical Features** | **Test Systems** |
+| ------------- | ------------- | ----- |
+| ------------- | ------------- | ----- |
+
+## Integrated Methods
+| **Paper** | **Technical Features** | **Test Systems** |
+| ------------- | ------------- | ----- |
+| Qiu, Feng, and Peijie Li. "An integrated approach for power system restoration planning." Proceedings of the IEEE 105, no. 7 (2017): 1234-1252. | sectionalization==>optimize generator start-up==>path search==>solution refinement | IEEE 30-bus, IEEE 118-bus |

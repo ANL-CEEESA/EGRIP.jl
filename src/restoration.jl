@@ -25,9 +25,14 @@ using PowerModels
 
 @doc raw"""
 Solve sectionalization problem for restoration preparedness
-- Problem type: The restoration problem could be partial or full restorations
+- Problem type: The sectionalization problem could assign all buses to certain sections or only critical buses.
 - Inputs:
+    - network data directory
+    - restoration data directory
+    - result storage directory
+    - gap
 - Output:
+    - JSON file of network data of each section
 - Constraints:
 """
 function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, gap)
@@ -234,7 +239,10 @@ function solve_section(dir_case_network, dir_case_blackstart, dir_case_result, g
     # m = model.internalModel.inner
     # CPLEX.set_logfile(m.env, string(dir, "log.txt"))
 
-    status = optimize!(model)
+    optimize!(model)
+    status = termination_status(model)
+    println("")
+    println("Termination status: ", status)
     println("The objective value is: ", objective_value(model))
 
     # store and print the results
@@ -285,10 +293,13 @@ end
 Solve restoration problem
 - Problem type: The restoration problem could be partial or full restorations
 - Inputs: A set of restoration data in csv format and original system data
-    - restoration_gen: specify initial generator status, cranking specifications and black-start generators
-    - restoration_bus: specify initial bus status and its load priority, from where the problem type (partial or full restorations) can be determined
-    - restoration_line: specify initial line status, from where the problem type (partial or full restorations) can be determined
-    - original system data in matpower or PSS/E format
+    - network data directory where data format could be json, matpower and psse
+    - restoration data directory
+        - restoration_gen: specify initial generator status, cranking specifications and black-start generators
+        - restoration_bus: specify initial bus status and its load priority, from where the problem type (partial or full restorations) can be determined
+        - restoration_line: specify initial line status, from where the problem type (partial or full restorations) can be determined
+    - result storage directory
+    - gap
 - Output: Restoration plans
 - Constraints:
     - linearized AC power flow constraint
@@ -306,7 +317,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
         println(dir_case_network)
         ref = Dict()
         ref = JSON.parsefile(dir_case_network)  # parse and transform data
-        println("convert key type from string to symbol and int")
+        println("reconstruct data loaded from json")
         ref = Dict([Symbol(key) => val for (key, val) in pairs(ref)])
         ref[:gen] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:gen])])
         ref[:bus] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus])])
@@ -318,6 +329,8 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
         ref[:load] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:load])])
         ref[:buspairs] = Dict([ (parse(Int, split(key, ['(', ',', ')'])[2]),
             parse(Int, split(key, ['(', ',', ')'])[3]))=> val for (key, val) in pairs(ref[:buspairs])])
+        ref[:arcs] = [Tuple(val) for (key, val) in pairs(ref[:arcs])]
+        ref[:bus_arcs] = Dict([key=>[Tuple(arc) for arc in val] for (key,val) in pairs(ref[:bus_arcs])])
         println("complete loading network data in json format")
     elseif network_data_format == "matpower"
         # Convert data from matpower format to Julia Dict (PowerModels format)
@@ -350,8 +363,11 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     println("gen")
     println(keys(ref[:gen]))
 
+    println("number of arcs")
+    println(length(ref[:arcs]))
+
     println("arcs")
-    println(keys(ref[:arcs]))
+    println(ref[:arcs])
 
     # Count numbers and generate iterators
     ngen = length(keys(ref[:gen]));
@@ -460,7 +476,10 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     # m = model.internalModel.inner
     # CPLEX.set_logfile(m.env, string(dir, "log.txt"))
 
-    status = optimize!(model)
+    optimize!(model)
+    status = termination_status(model)
+    println("")
+    println("Termination status: ", status)
     println("The objective value is: ", objective_value(model))
 
 
