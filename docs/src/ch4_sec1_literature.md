@@ -41,10 +41,11 @@ In addition, the following paper describes a holistic toolkit with different mod
 | -------------------------- | -------------------------- | -------- |
 | W. Sun, C. C. Liu, and L. Zhang, “Optimal generator start-up strategy for bulk power system restoration,” IEEE Trans. Power Syst., vol. 26, no. 3, pp. 1357–1366, 2011. | ------------- | ----- |
 | X. Gu, W. Liu, and C. Sun, “Optimisation for unit restarting sequence considering decreasing trend of unit start-up efficiency after a power system blackout,” IET Gener. Transm. Distrib., vol. 10, no. 16, pp. 4187–4196, 2016. | ------------- | ----- |
-| Y. Zhao, Z. Lin, Y. Ding, Y. Liu, L. Sun, and Y. Yan, “A model predictive control based generator start-up optimization strategy for restoration with microgrids as black-start resources,” IEEE Trans. Power Syst., vol. 33, no. 6, pp. 7189–7203, 2018. | ------------- | ----- |
-| R. Sun, Y. Liu, and L. Wang, “An online generator start-up algorithm for transmission system self-healing based on mcts and sparse autoencoder,” IEEE Trans. Power Syst., vol. 34, no. 3, pp. 2061–2070, 2019. | ------------- | ----- |
+| Y. Zhao, Z. Lin, Y. Ding, Y. Liu, L. Sun, and Y. Yan, “A model predictive control based generator start-up optimization strategy for restoration with microgrids as black-start resources,” IEEE Trans. Power Syst., vol. 33, no. 6, pp. 7189–7203, 2018. | Motivation: microgrids as black-start resources and address uncertainty; Methood: MPC + scenario reduction using mass transportation problem; no power flow models | ----- |
+| R. Sun, Y. Liu, and L. Wang, “An online generator start-up algorithm for transmission system self-healing based on mcts and sparse autoencoder,” IEEE Trans. Power Syst., vol. 34, no. 3, pp. 2061–2070, 2019. | Motivation: the shortcomings of offline restoration plan; Method: Expert system based online generator start-up system ==> Monte Carlo tree search and sparse autoencoder | Western Shandong Power Grid of China |
 | X. Gu, G. Zhou, S. Li, and T. Liu, “Global optimisation model and algorithm for unit restarting sequence considering black-start zone partitioning,” IET Gener. Transm. Distrib., vol. 13, no. 13, pp. 2652–2663, 2019. | ------------- | ----- |
-| L. Sun, W. Liu, C. Y. Chung, M. Ding, R. Bi, and L. Wang, “Improving the restorability of bulk power systems with the implementation of a wf-bess system,” IEEE Trans. Power Syst., vol. 34, no. 3, pp. 2366–2377, 2019. | ------------- | ----- |
+| L. Sun, W. Liu, C. Y. Chung, M. Ding, R. Bi, and L. Wang, “Improving the restorability of bulk power systems with the implementation of a wf-bess system,” IEEE Trans. Power Syst., vol. 34, no. 3, pp. 2366–2377, 2019. | Motivation: adtively dispatch wind and energy storage; Method: define restorability index ==> consider uncertainty and scenario reduction ==> optimal dispatch of wind and energy storage ==> Benders decomposition with restoration as master and dispatch as slave | Guangdong power system in China |
+| L. Sun, Z. Lin, Y. Xu, F. Wen, C. Zhang, and Y. Xue, “Optimal Skeleton-Network Restoration Considering Generator Start-Up Sequence and Load Pickup,” IEEE Trans. Smart Grid, vol. 10, no. 3, pp. 3174–3185, 2019. | Motivation: integrate startup and transmission line selection; Method: sequentially solve three problems: generator startup, network building and load pickup | IEEE 39-bus; Guangdong power system in China |
 
 
 ## 4. Path search
@@ -55,7 +56,6 @@ In addition, the following paper describes a holistic toolkit with different mod
 |F. Edström and L. Söder, “On spectral graph theory in power system restoration,” IEEE PES Innov. Smart Grid Technol. Conf. Eur., 2011. | ------------- | ----- |
 | W. Sun and C. C. Liu, “Optimal transmission path search in power system restoration,” Proc. IREP Symp. Bulk Power Syst. Dyn. Control - IX Optim. Secur. Control Emerg. Power Grid, IREP 2013, pp. 0–4, 2013. | ------------- | ----- |
 | Y. Xie, K. Song, Q. Wu, and Q. Zhou, “Orthogonal genetic algorithm based power system restoration path optimization,” Int. Trans. Electr. Energy Syst., vol. 28, no. 12, pp. 1–17, 2018. | ------------- | ----- |
-| L. Sun, Z. Lin, Y. Xu, F. Wen, C. Zhang, and Y. Xue, “Optimal Skeleton-Network Restoration Considering Generator Start-Up Sequence and Load Pickup,” IEEE Trans. Smart Grid, vol. 10, no. 3, pp. 3174–3185, 2019. | ------------- | ----- |
 | S. Liao et al., “An improved two-stage optimization for network and load recovery during power system restoration,” Appl. Energy, vol. 249, no. January, pp. 265–275, 2019. | ------------- | ----- |
 | S. Li, X. Gu, G. Zhou, and Y. Li, “Optimisation and comprehensive evaluation of alternative energising paths for power system restoration,” IET Gener. Transm. Distrib., vol. 13, no. 10, pp. 1923–1932, 2019. | ------------- | ----- |
 
@@ -67,6 +67,9 @@ In addition, the following paper describes a holistic toolkit with different mod
 | Z. Qin, Y. Hou, C. C. Liu, S. Liu, and W. Sun, “Coordinating generation and load pickup during load restoration with discrete load increments and reserve constraints,” IET Gener. Transm. Distrib., vol. 9, no. 15, pp. 2437–2446, 2015. | ------------- | ----- |
 | A. Gholami and F. Aminifar, “A Hierarchical Response-Based Approach to the Load Restoration Problem,” IEEE Trans. Smart Grid, vol. 8, no. 4, pp. 1700–1709, 2017. | ------------- | ----- |
 | A. Golshani, W. Sun, and K. Sun, “Real-Time Optimized Load Recovery Considering Frequency Constraints,” IEEE Trans. Power Syst., vol. 34, no. 6, pp. 4204–4215, 2019. | ------------- | ----- |
+| J. Zhao, H. Wang, Y. Liu, R. Azizipanah-Abarghooee, and V. Terzija, “Utility-oriented online load restoration considering wind power penetration,” IEEE Trans. Sustain. Energy, vol. 10, no. 2, pp. 706–717, 2019. | -------------------------- | -------- |
+| J. Zhao, Y. Liu, H. Wang, and Q. Wu, “Receding horizon load restoration for coupled transmission and distribution system considering load-source uncertainty,” Int. J. Electr. Power Energy Syst., vol. 116, no. July 2019, p. 105517, 2020. | -------------------------- | -------- |
+| J. Zhao, H. Wang, Q. Wu, N. D. Hatziargyriou, and F. Shen, “Distributed Risk-limiting Load Restoration for Wind Power Penetrated Bulk System,” IEEE Trans. Power Syst., vol. 8950, no. c, pp. 1–1, 2020. | -------------------------- | -------- |
 
 
 ## Integrated Methods

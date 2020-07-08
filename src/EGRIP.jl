@@ -9,6 +9,8 @@ include("startup.jl")
 # include("parser.jl")
 
 export solve_restoration_full
+export solve_restoration_part
 export solve_section
+export solve_startup
 
 end
