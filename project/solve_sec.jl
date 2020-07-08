@@ -140,13 +140,17 @@ for (idx_gen, info_gen) in ref[:gen]
     end
 end
 
-
-
+# save sectionalized data
 a=["ref_38","ref_39"]
 open(string(dir_case_result, a[1], ".json"), "w") do f
     JSON.print(f, section_ref[38])
 end
+open(string(dir_case_result, a[2], ".json"), "w") do f
+    JSON.print(f, section_ref[39])
+end
 
+
+# load data for restoration
 dict = Dict()
 
 string(dir_case_result, a[1], ".json")
@@ -165,6 +169,7 @@ dict[:buspairs] = Dict([ (parse(Int, split(key, ['(', ',', ')'])[2]),
     parse(Int, split(key, ['(', ',', ')'])[3]))=> val for (key, val) in pairs(dict[:buspairs])])
 dict[:arcs] = [Tuple(val) for (key,val) in pairs(dict[:arcs])]
 dict[:bus_arcs] = Dict([key=>[Tuple(arc) for arc in val] for (key,val) in pairs(dict[:bus_arcs])])
+
 # ------------ Interactive --------------
 dir_case_network = string(dir_case_result, a[1], ".json")
 dir_case_blackstart = "BS_generator.csv"
