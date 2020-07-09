@@ -21,8 +21,10 @@ dir_case_result = "results_startup/"
 t_final = 300
 t_step = 100
 gap = 0.15
-solve_startup(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
+# ref = solve_startup(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+
+ref = solve_restoration_part(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
 # # -------------- Command line --------------
 # dir_case_network = ARGS[1]

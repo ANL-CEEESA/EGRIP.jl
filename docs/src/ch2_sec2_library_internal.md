@@ -18,6 +18,33 @@ Order   = [:type, :function]
 Private  = true
 ```
 
+## Generator Startup Models
+use `@autodocs` block to splice the docstrings
+```@autodocs
+Modules = [EGRIP]
+Pages   = ["startup.jl"]
+Order   = [:type, :function]
+Private  = true
+```
+
+## Generator Models
+use `@autodocs` block to splice the docstrings
+```@autodocs
+Modules = [EGRIP]
+Pages   = ["gen.jl"]
+Order   = [:type, :function]
+Private  = true
+```
+
+## Load Models
+use `@autodocs` block to splice the docstrings
+```@autodocs
+Modules = [EGRIP]
+Pages   = ["load.jl"]
+Order   = [:type, :function]
+Private  = true
+```
+
 ## Power Flow Models
 use `@autodocs` block to splice the docstrings
 ```@autodocs
@@ -27,11 +54,11 @@ Order   = [:type, :function]
 Private  = true
 ```
 
-## Generator Startup Models
+## Util Functions
 use `@autodocs` block to splice the docstrings
 ```@autodocs
 Modules = [EGRIP]
-Pages   = ["startup.jl"]
+Pages   = ["util.jl"]
 Order   = [:type, :function]
 Private  = true
 ```
