@@ -11,7 +11,7 @@ using JSON
 using PowerModels
 
 @doc raw"""
-- Load network data
+Load network data
 """
 function load_network(dir_case_network, network_data_format)
     #----------------- Load system data ----------------
@@ -78,7 +78,7 @@ function load_network(dir_case_network, network_data_format)
 end
 
 @doc raw"""
-- Load network data
+Load generator data with respect to restoration
 """
 function load_gen(dir_case_blackstart, ref, time_step)
     # Generation data will be further adjusted based on the time and resolution specifications

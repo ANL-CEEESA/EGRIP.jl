@@ -11,7 +11,7 @@ using JSON
 using PowerModels
 
 @doc raw"""
-- Define generator variables
+Define generator variables
 """
 function def_var_gen(model, ref, stages)
     # on-off status of gen at time t

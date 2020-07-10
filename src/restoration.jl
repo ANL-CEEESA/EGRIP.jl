@@ -24,8 +24,8 @@ using PowerModels
 
 
 @doc raw"""
-- Solve full restoration problem (The restoration problem could be partial or full restorations)
-    - Full restoration problem assumes that the entire network is broken down.
+Solve full restoration problem (The restoration problem could be partial or full restorations)
+- Full restoration problem assumes that the entire network is broken down.
 - Inputs: A set of restoration data in csv format and original system data
     - network data directory where data format could be json, matpower and psse
     - restoration data directory
@@ -502,8 +502,8 @@ end
 
 
 @doc raw"""
-- Solve partial restoration problem (The restoration problem could be partial or full restorations)
-    - Partial restoration problem assumes that a part of the network is still functioning.
+Solve partial restoration problem (The restoration problem could be partial or full restorations)
+- Partial restoration problem assumes that a part of the network is still functioning.
 - Inputs: A set of restoration data in csv format and original system data
     - network data directory where data format could be json, matpower and psse
     - restoration data directory

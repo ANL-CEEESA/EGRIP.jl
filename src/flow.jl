@@ -12,7 +12,7 @@ using PowerModels
 
 
 @doc raw"""
-define flow variable
+Define flow variable
 """
 function def_var_flow(model, ref, stages)
     @variable(model, x[keys(ref[:buspairs]),stages], Bin); # status of line at time t
@@ -41,7 +41,7 @@ end
 
 
 @doc raw"""
-form the nodal constraints:
+Form the nodal constraints:
 - voltage constraint
     - voltage deviation should be limited
     - voltage constraints are only activated if the associated line is energized
@@ -185,7 +185,7 @@ end
 
 
 @doc raw"""
-branch (power flow) constraints
+Branch (power flow) constraints
 - linearized power flow
 ```math
 \begin{align*}

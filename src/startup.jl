@@ -11,7 +11,7 @@ using JSON
 using PowerModels
 
 @doc raw"""
-- Solve generator start-up problem
+Solve generator start-up problem
 - Inputs: A set of restoration data in csv format and original system data
     - network data directory where data format could be json, matpower and psse
     - restoration data directory

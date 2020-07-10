@@ -12,7 +12,7 @@ using PowerModels
 
 
 @doc raw"""
-define load variables
+Define load variables
 """
 function def_var_load(model, ref, stages)
     # load P and Q
@@ -31,7 +31,7 @@ end
 
 
 @doc raw"""
-load pickup constraint
+Load pickup constraint
 - restored load cannot exceed its maximum values
 ```math
 \begin{align*}
@@ -98,7 +98,7 @@ function form_load_logic(ref, model, stages)
 end
 
 @doc raw"""
-load pickup constraint form 1
+Load pickup constraint form 1
 """
 function form_load_logic_1(ref, model, stages)
 
