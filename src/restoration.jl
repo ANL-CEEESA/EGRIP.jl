@@ -52,7 +52,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     # Set time and resolution specifications
     # The final time selection should be complied with restoration time requirement.
     time_final = t_final;
-    time_series = 1:t_final;
+    time_series = 0:t_final;
     # Choicing different time steps is the key for testing multiple resolutions
     time_step = t_step;
     # calculate stages
@@ -114,18 +114,21 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     println("Termination status: ", status)
     println("The objective value is: ", objective_value(model))
 
-
-    #------------- Record results ----------------
-    # results in stages
+    #
+    # #------------- Record results ----------------
+    # # results in stages
     println("")
-    adj_matrix = zeros(length(ref[:bus]), length(ref[:bus]))
+    adj_matrix = Dict()
+    for (i,j) in keys(ref[:buspairs])
+        adj_matrix[(i,j)] = 0
+    end
     println("Line energization: ")
     for t in stages
         print("stage ", t, ": ")
         for (i,j) in keys(ref[:buspairs])
-             if abs(value(model[:x][(i,j),t]) - 1) < 1e-6 && adj_matrix[i,j] == 0
+             if (abs(value(model[:x][(i,j),t]) - 1) < 1e-6) && (adj_matrix[(i,j)] == 0)
                 print("(", i, ",", j, ") ")
-                adj_matrix[i,j] = 1
+                adj_matrix[(i,j)] = 1
              end
         end
         println("")
@@ -493,6 +496,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     # end
     # close(resultfile)
 
+    return ref, model
 end
 
 

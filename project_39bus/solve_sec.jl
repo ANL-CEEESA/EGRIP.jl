@@ -10,6 +10,7 @@ push!(LOAD_PATH,"../src/")
 using EGRIP
 using JSON
 using CSV
+using JuMP
 # Or we use EGRIP as a module.
 # include("../src/EGRIP.jl")
 # using .EGRIP
@@ -170,15 +171,19 @@ dict[:buspairs] = Dict([ (parse(Int, split(key, ['(', ',', ')'])[2]),
 dict[:arcs] = [Tuple(val) for (key,val) in pairs(dict[:arcs])]
 dict[:bus_arcs] = Dict([key=>[Tuple(arc) for arc in val] for (key,val) in pairs(dict[:bus_arcs])])
 
+
 # ------------ Interactive --------------
 dir_case_network = string(dir_case_result, a[1], ".json")
-dir_case_blackstart = "BS_generator.csv"
+dir_case_blackstart = "BS_generator_2.csv"
 network_data_format = "json"
 dir_case_result = "results_sec/"
 t_final = 500
 t_step = 100
+nstage = t_final/t_step;
+stages = 1:nstage;
 gap = 0.5
-solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+ref, model = solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+
 
 # # -------------- Command line --------------
 # dir_case_network = ARGS[1]
