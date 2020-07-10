@@ -43,74 +43,64 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
     # Load generation data
     Pcr, Tcr, Krp = load_gen(dir_case_blackstart, ref, time_step)
 
-    # ----------------- Build mathematical programming models -----------------
-    # ----------------- JuMP 0.18 -----------------
+    #----------------- Load solver ---------------
+    # JuMP 0.18
     # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
     # model = Model(solver=CplexSolver())
-    # ----------------- JuMP 0.19 -----------------
+    # JuMP 0.19
     model = Model(CPLEX.Optimizer)
     set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
 
+    # ------------Define decision variable ---------------------
+    # define generator variables
+    model = def_var_gen(model, ref, stages)
+
+    # define load variables
+    model = def_var_load(model, ref, stages)
+
+    # ------------Define constraints ---------------------
     # generator cranking constraint
-    model, Pg_total = form_gen_cranking_1(ref, model, stages, Pcr, Tcr, Krp)
+    model = form_gen_cranking_1(ref, model, stages, Pcr, Tcr, Krp)
 
+    # load pickup logic
+    model = form_load_logic_1(ref, model, stages)
 
-    return ref
-
+    # generator capacity is greater than load for all time
+    for t in stages
+        @constraint(model, model[:pg_total][t] >= model[:pd_total][t])
+    end
 
 
     #-----------------Define objectives--------------------
-    # @objective(model, Min, sum(sum(1 - y[g,t] for g in keys(ref[:gen])) for t in stages) )
+    @objective(model, Min, sum(sum(t * model[:ys][g,t] for t in stages) for g in keys(ref[:gen])) +
+                            + sum(sum(t * model[:zs][d,t] for t in stages) for d in keys(ref[:load]))
+                )
 
     #------------- Build and solve model----------------
     # buildInternalModel(model)
     # m = model.internalModel.inner
     # CPLEX.set_logfile(m.env, string(dir, "log.txt"))
 
-    # optimize!(model)
-    # status = termination_status(model)
-    # println("")
-    # println("Termination status: ", status)
-    # println("The objective value is: ", objective_value(model))
+    # optimize the model
+    optimize!(model)
+    status = termination_status(model)
+    println("")
+    println("Termination status: ", status)
+    println("The objective value is: ", objective_value(model))
 
 
     # #------------- Record results ----------------
-    # # results in stages
-    # println("")
-    # adj_matrix = zeros(length(ref[:bus]), length(ref[:bus]))
-    # println("Line energization: ")
-    # for t in stages
-    #     print("stage ", t, ": ")
-    #     for (i,j) in keys(ref[:buspairs])
-    #          if abs(value(x[(i,j),t]) - 1) < 1e-6 && adj_matrix[i,j] == 0
-    #             print("(", i, ",", j, ") ")
-    #             adj_matrix[i,j] = 1
-    #          end
-    #     end
-    #     println("")
-    # end
-    #
-    # println("")
-    # println("Generator energization: ")
-    # for t in stages
-    #     print("stage ", t, ": ")
-    #     for g in keys(ref[:gen])
-    #         if (abs(value(y[g,t]) - 1) < 1e-6 && t == 1) || (t > 1 && abs(value(y[g,t-1]) + value(y[g,t]) - 1) < 1e-6)
-    #             print(ref[:gen][g]["gen_bus"], " ")
-    #         end
-    #     end
-    #     println("")
-    # end
-    #
-    # println("")
-    # println("Bus energization: ")
-    # for t in stages
-    #     print("stage ", t, ": ")
-    #     for b in keys(ref[:bus])
-    #         if (abs(value(u[b,t]) - 1) < 1e-6 && t == 1) || (t > 1 && abs(value(u[b,t-1]) + value(u[b,t]) - 1) < 1e-6)
-    #             print(b, " ")
-    #         end
-    #     end
-    #     println("")
-    # end
+    # results in stages
+    println("")
+    println("Generation total capacity: ")
+    for t in stages
+        println("stage ", t, ": ", value(model[:pg_total][t]))
+    end
+
+    println("Load total capacity: ")
+    for t in stages
+        println("stage ", t, ": ", value(model[:pd_total][t]))
+    end
+
+    return ref, model
 end

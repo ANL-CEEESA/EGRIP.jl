@@ -10,6 +10,36 @@ using CSV
 using JSON
 using PowerModels
 
+
+@doc raw"""
+define flow variable
+"""
+function def_var_flow(model, ref, stages)
+    @variable(model, x[keys(ref[:buspairs]),stages], Bin); # status of line at time t
+    @variable(model, u[keys(ref[:bus]),stages], Bin); # status of bus at time t
+    @variable(model, ref[:bus][i]["vmin"] <= v[i in keys(ref[:bus]),stages]
+        <= ref[:bus][i]["vmax"]); # bus voltage with upper- and lower bounds
+    @variable(model, a[keys(ref[:bus]),stages]); # bus angle
+
+    # slack variables of voltage and angle on flow equations
+    bp2 = collect(keys(ref[:buspairs]))
+    for k in keys(ref[:buspairs])
+        i,j = k
+        push!(bp2, (j,i))
+    end
+    @variable(model, vl[bp2,stages]) # V_i^j
+    @variable(model, al[bp2,stages]) # theta_i^j
+    @variable(model, vb[keys(ref[:bus]),stages])
+
+    # line flow with the index rule (branch, from_bus, to_bus)
+    # Note that we can only measure the line flow at the bus terminal
+    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs],stages] <= ref[:branch][l]["rate_a"])
+    @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs],stages] <= ref[:branch][l]["rate_a"])
+
+    return model
+end
+
+
 @doc raw"""
 form the nodal constraints:
 - voltage constraint
@@ -63,7 +93,22 @@ form the nodal constraints:
 \end{align*}
 ```
 """
-function form_nodal(ref, model, stages, vl, vb, v, x, y, a, al, u, p, q, pg, pl, qg, ql)
+function form_nodal(ref, model, stages)
+    vl = model[:vl]
+    vb = model[:vb]
+    v = model[:v]
+    x = model[:x]
+    y = model[:y]
+    a = model[:a]
+    al = model[:al]
+    u = model[:u]
+    p = model[:p]
+    q = model[:q]
+    pg = model[:pg]
+    pl = model[:pl]
+    qg = model[:qg]
+    ql = model[:ql]
+
     println("")
     println("formulating nodal constraints")
 
@@ -149,7 +194,14 @@ q_{bij,t}=-B_{ii}(2vl_{ij,t}-x_{ij,t}) - B_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) 
 \end{align*}
 ```
 """
-function form_branch(ref, model, stages, vl, al, x, u, p, q)
+function form_branch(ref, model, stages)
+
+    vl = model[:vl]
+    al = model[:al]
+    x = model[:x]
+    u = model[:u]
+    p = model[:p]
+    q = model[:q]
 
     for (i, branch) in ref[:branch]
 

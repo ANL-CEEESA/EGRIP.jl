@@ -11,6 +11,24 @@ using JSON
 using PowerModels
 
 
+@doc raw"""
+define load variables
+"""
+function def_var_load(model, ref, stages)
+    # load P and Q
+    @variable(model, pl[keys(ref[:load]),stages])
+    @variable(model, ql[keys(ref[:load]),stages])
+
+    # indicator of load status
+    @variable(model, z[keys(ref[:load]),stages], Bin)
+    # indicator of load restoration instant
+    @variable(model, zs[keys(ref[:load]),stages], Bin);
+    # total load at time t
+    @variable(model, pd_total[stages])
+
+    return model
+end
+
 
 @doc raw"""
 load pickup constraint
@@ -29,9 +47,12 @@ load pickup constraint
 \end{align*}
 ```
 """
-function form_load_logic(ref, model, stages, pl, ql, u)
+function form_load_logic(ref, model, stages)
 
     println("formulating load logic constraints")
+    pl = model[:pl]
+    ql = model[:ql]
+    u = model[:u]
 
     for t in stages
         for l in keys(ref[:load])
@@ -73,5 +94,42 @@ function form_load_logic(ref, model, stages, pl, ql, u)
             end
         end
     end
+    return model
+end
+
+@doc raw"""
+load pickup constraint form 1
+"""
+function form_load_logic_1(ref, model, stages)
+
+    z = model[:z]
+    zs = model[:zs]
+
+    # summation of zs will be one
+    for d in keys(ref[:load])
+        @constraint(model, sum(model[:zs][d,t] for t in stages) == 1)
+    end
+
+    # a load has no activity before it is picked up
+    for t in stages
+        if t > 1
+            for d in keys(ref[:load])
+                @constraint(model, sum(z[d,i] for i in 1:(t-1)) <= (t - 1) * (1 - zs[d,t]))
+            end
+        end
+    end
+
+    # a load is served to the end of the time horizon once it is picked up
+    for t in stages
+        for d in keys(ref[:load])
+            @constraint(model, sum(z[d,i] for i in t:stages[end]) >= (stages[end] - t + 1) * zs[d,t])
+        end
+    end
+
+    # total load
+    for t in stages
+        @constraint(model, model[:pd_total][t] == sum(ref[:load][d]["pd"] * z[d,t] for d in keys(ref[:load])))
+    end
+
     return model
 end

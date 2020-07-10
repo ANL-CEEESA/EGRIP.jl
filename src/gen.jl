@@ -13,7 +13,7 @@ using PowerModels
 @doc raw"""
 - Define generator variables
 """
-function def_gen_var(model, ref, stages)
+function def_var_gen(model, ref, stages)
     # on-off status of gen at time t
     @variable(model, y[keys(ref[:gen]),stages], Bin);
 
@@ -29,7 +29,8 @@ function def_gen_var(model, ref, stages)
     @variable(model, yr[keys(ref[:gen]),stages], Bin);
     # indicator of Pmax
     @variable(model, yd[keys(ref[:gen]),stages], Bin);
-
+    # total generation capacity at time t
+    @variable(model, pg_total[stages]);
     return model
 end
 
@@ -73,7 +74,6 @@ function form_gen_logic(ref, model, stages, nstage, Krp, Pcr)
             end
         end
     end
-
     return model
 end
 
@@ -103,32 +103,33 @@ Generator cranking constraint
 \end{align*}
 ```
 """
-function form_gen_cranking(ref, model, stages, pg, qg, y, Pcr, Tcr)
-
-    println("formulating black-start constraints")
-
+function form_gen_cranking(ref, model, stages, Pcr, Tcr)
+    println("formulating generator cranking constraint")
     for t in stages
         for g in keys(ref[:gen])
             if t > Tcr[g] + 1
                 # scenario 1
-                @constraint(model, pg[g,t] >= -Pcr[g] * (y[g,t] - y[g,t-Tcr[g]]))
-                @constraint(model, pg[g,t] <= ref[:gen][g]["pmax"] * y[g,t-Tcr[g]-1] - Pcr[g] * (y[g,t] - y[g,t-Tcr[g]]))
+                @constraint(model, model[:pg][g,t] >= -Pcr[g] * (model[:y][g,t] - model[:y][g,t-Tcr[g]]))
+                @constraint(model, model[:pg][g,t] <= ref[:gen][g]["pmax"] * model[:y][g,t-Tcr[g]-1] - Pcr[g] * (model[:y][g,t] - model[:y][g,t-Tcr[g]]))
             elseif t <= Tcr[g]
                 # determine the non-black start generator power by its cranking condition
                 # with the time less than the cranking time, the generator power could only be zero or absorbing cranking power
-                @constraint(model, pg[g,t] == -Pcr[g] * y[g,t])
+                @constraint(model, model[:pg][g,t] == -Pcr[g] * model[:y][g,t])
             else
                 # if the unit is on from the first time instant, it satisfies the cranking constraint and its power becomes zero
                 # if not, it still absorbs the cranking power
-                @constraint(model, pg[g,t] == -Pcr[g] * (y[g,t] - y[g,1]))
+                @constraint(model, model[:pg][g,t] == -Pcr[g] * (model[:y][g,t] - model[:y][g,1]))
             end
-            @constraint(model, qg[g,t] >= ref[:gen][g]["qmin"]*y[g,t])
+            @constraint(model, model[:qg][g,t] >= ref[:gen][g]["qmin"] * model[:y][g,t])
             # @constraint(model, qg[g,t] >= -10*y[g,t])
-            @constraint(model, qg[g,t] <= ref[:gen][g]["qmax"]*y[g,t])
+            @constraint(model, model[:qg][g,t] <= ref[:gen][g]["qmax"] * model[:y][g,t])
         end
     end
     return model
 end
+
+
+
 
 @doc raw"""
 Generator cranking constraint (form 1)
@@ -144,12 +145,17 @@ function form_gen_cranking_1(ref, model, stages, Pcr, Tcr, Krp)
 
     println("formulating black-start constraints")
 
+    # summation of ys will be one
+    for g in keys(ref[:gen])
+        @constraint(model, sum(model[:ys][g,t] for t in stages) == 1)
+    end
+
     # a NBS generator has no activity before it is started
     for t in stages
         # Eq (1): no cranking before be activated
         if t > 1
             for g in keys(ref[:gen])
-                @constraint(model, (t - 1) * (1 - ys[g,t]) >= sum(yc[g,i] for i in 1:(t-1)))
+                @constraint(model, (t - 1) * (1 - model[:ys][g,t]) >= sum(model[:yc][g,i] for i in 1:(t-1)))
             end
         end
 
@@ -157,14 +163,14 @@ function form_gen_cranking_1(ref, model, stages, Pcr, Tcr, Krp)
         for g in keys(ref[:gen])
             # get the terminal time
             t_terminal = min(stages[end], t + Tcr[g] - 1)
-            @constraint(model, (t + Tcr[g] - 1) * (1 - ys[g,t]) >= sum(yr[g,i] for i in 1:t_terminal))
+            @constraint(model, (t + Tcr[g] - 1) * (1 - model[:ys][g,t]) >= sum(model[:yr][g,i] for i in 1:t_terminal))
         end
 
         # Eq (3): not Pmax before be activated
         for g in keys(ref[:gen])
             # get the terminal time
             t_terminal = min(stages[end], t + Tcr[g] + Trp[g] - 1)
-            @constraint(model, (t + Tcr[g] + Trp[g] - 1) * (1 - ys[g,t]) >= sum(yd[g,i] for i in 1:t_terminal))
+            @constraint(model, (t + Tcr[g] + Trp[g] - 1) * (1 - model[:ys][g,t]) >= sum(model[:yd][g,i] for i in 1:t_terminal))
         end
     end
 
@@ -172,7 +178,7 @@ function form_gen_cranking_1(ref, model, stages, Pcr, Tcr, Krp)
     for t in stages
         for g in keys(ref[:gen])
             t_terminal = min(stages[end], t + Tcr[g] - 1)
-            @constraint(model, sum(yc[g,i] for i in t:t_terminal) >= ys[g,t] * min(stages[end] - t, Tcr[g] - 1))
+            @constraint(model, sum(model[:yc][g,i] for i in t:t_terminal) >= model[:ys][g,t] * min(stages[end] - t, Tcr[g] - 1))
         end
     end
 
@@ -180,16 +186,17 @@ function form_gen_cranking_1(ref, model, stages, Pcr, Tcr, Krp)
     for t in stages
         for g in keys(ref[:gen])
             t_terminal = min(stages[end], t + Tcr[g] + Trp[g] - 1)
-            @constraint(model, sum(yc[g,i] for i in t:t_terminal) >= ys[g,t] * min(stages[end] - t, Tcr[g] + Trp[g] - 1))
+            @constraint(model, sum(model[:yc][g,i] for i in t:t_terminal) >= model[:ys][g,t] * min(stages[end] - t, Tcr[g] + Trp[g] - 1))
         end
     end
 
     # total generation at each time t
-    Pg_total = Dict()
     for t in stages
-        Pg_total[t] = sum((yc[g,t] * (-Pcr[g]) + sum(yr[g,i] * Krp[g] for i in max(1,t-Tcr[g]+1):t) + ref[:gen][g]["pmax"] * yd[g,t]) for g in keys(ref[:gen]))
+        @constraint(model, model[:pg_total][t] == sum((model[:yc][g,t] * (-Pcr[g])
+                        + sum(model[:yr][g,i] * Krp[g] for i in max(1,t-Tcr[g]+1):t)
+                        + ref[:gen][g]["pmax"] * model[:yd][g,t]) for g in keys(ref[:gen])))
     end
 
     # return variables
-    return model, Pg_total
+    return model
 end
