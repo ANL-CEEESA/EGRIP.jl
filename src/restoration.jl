@@ -52,7 +52,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     # Set time and resolution specifications
     # The final time selection should be complied with restoration time requirement.
     time_final = t_final;
-    time_series = 0:t_final;
+    time_series = 1:t_final;
     # Choicing different time steps is the key for testing multiple resolutions
     time_step = t_step;
     # calculate stages
@@ -159,342 +159,342 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     end
 
     # #-----------Build a dictionary to store the changing point---------------
-    # CP = Dict();
-    #
-    # # Write branch energization solution
-    # CP[:x] = Dict();
-    # resultfile = open(string(dir_case_result, "res_x.csv"), "w")
-    # print(resultfile, "Branch Index, From Bus , To Bus,")
-    # for t in stages
-    #     if t<nstage
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, branch) in ref[:branch]
-    #         # if branch["b_fr"] == 0
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             print(resultfile, branch["f_bus"])
-    #             print(resultfile, ", ")
-    #             print(resultfile, branch["t_bus"])
-    #             print(resultfile, ",")
-    #             for t in stages
-    #                 if t<nstage
-    #                     print(resultfile, round(value(x[(branch["f_bus"], branch["t_bus"]),t])))
-    #                     print(resultfile, ",")
-    #                     # detection of changing point
-    #                     if (value(x[(branch["f_bus"], branch["t_bus"]),t])==0) & (value(x[(branch["f_bus"], branch["t_bus"]),t+1])==1)
-    #                         CP[:x][i] = t
-    #                     end
-    #                 else
-    #                     print(resultfile, round(value(x[(branch["f_bus"], branch["t_bus"]),t])))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    #         #end
-    # end
-    # close(resultfile)
-    #
-    # # Write generator energization solution
-    # CP[:y] = Dict();
-    # resultfile = open(string(dir_case_result, "res_y.csv"), "w")
-    # print(resultfile, "Gen Index, Gen Bus,")
-    # for t in stages
-    #     if t<nstage
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, gen) in ref[:gen]
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             print(resultfile, gen["gen_bus"])
-    #             print(resultfile, ", ")
-    #             for t in stages
-    #                 if t<nstage
-    #                     print(resultfile, round(value(y[i,t])))
-    #                     print(resultfile, ",")
-    #                     # detection of changing point
-    #                     if (value(y[i,t])==0) & (value(y[i,t+1])==1)
-    #                         CP[:y][i] = t
-    #                     end
-    #                 else
-    #                     print(resultfile, value(y[i,t]))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    # end
-    # close(resultfile)
-    #
-    # # Write bus energization solution
-    # CP[:u] = Dict();
-    # resultfile = open(string(dir_case_result, "res_u.csv"), "w")
-    # print(resultfile, "Bus Index,")
-    # for t in stages
-    #     if t<nstage
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, bus) in ref[:bus]
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             for t in stages
-    #                 if t<nstage
-    #                     print(resultfile, round(value(u[i,t])))
-    #                     print(resultfile, ",")
-    #                     # detection of changing point
-    #                     if (value(u[i,t])==0) & (value(u[i,t+1])==1)
-    #                         CP[:u][i] = t
-    #                     end
-    #                 else
-    #                     print(resultfile, round(value(u[i,t])))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    # end
-    # close(resultfile)
-    #
-    #
-    # # Write generator active power dispatch solution
-    # resultfile = open(string(dir_case_result, "res_pg.csv"), "w")
-    # print(resultfile, "Gen Index, Gen Bus,")
-    # for t in stages
-    #     if t<nstage
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, gen) in ref[:gen]
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             print(resultfile, gen["gen_bus"])
-    #             print(resultfile, ", ")
-    #             for t in stages
-    #                 if t<nstage
-    #                     print(resultfile, round(value(pg[i,t])*100))
-    #                     print(resultfile, ",")
-    #                 else
-    #                     print(resultfile, round(value(pg[i,t])*100))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    # end
-    # close(resultfile)
-    #
-    # # Write generator rective power dispatch solution
-    # resultfile = open(string(dir_case_result, "res_qg.csv"), "w")
-    # print(resultfile, "Gen Index, Gen Bus,")
-    # for t in stages
-    #     if t<nstage
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, gen) in ref[:gen]
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             print(resultfile, gen["gen_bus"])
-    #             print(resultfile, ", ")
-    #             for t in stages
-    #                 if t<nstage
-    #                     print(resultfile, round(value(qg[i,t])*100))
-    #                     print(resultfile, ",")
-    #                 else
-    #                     print(resultfile, round(value(qg[i,t])*100))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    # end
-    # close(resultfile)
-    #
-    # # Write load active power dispatch solution
-    # resultfile = open(string(dir_case_result, "res_pl.csv"), "w")
-    # print(resultfile, "Load Index, Bus Index, ")
-    # for t in stages
-    #     if t<nstage
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, load) in ref[:load]
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             print(resultfile, load["load_bus"])
-    #             print(resultfile, ", ")
-    #             for t in stages
-    #                 if t<nstage
-    #                     print(resultfile, round(value(pl[i,t])*100))
-    #                     print(resultfile, ",")
-    #                 else
-    #                     print(resultfile, round(value(pl[i,t])*100))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    # end
-    # close(resultfile)
-    #
-    # # Write load rective power dispatch solution
-    # resultfile = open(string(dir_case_result, "res_ql.csv"), "w")
-    # print(resultfile, "Load Index, Bus Index, ")
-    # for t in stages
-    #     if t<nstage
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, load) in ref[:load]
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             print(resultfile, load["load_bus"])
-    #             print(resultfile, ", ")
-    #             for t in stages
-    #                 if t<nstage
-    #                     print(resultfile, round(value(ql[i,t])*100))
-    #                     print(resultfile, ",")
-    #                 else
-    #                     print(resultfile, round(value(ql[i,t])*100))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    # end
-    # close(resultfile)
-    #
-    #
+    CP = Dict();
+
+    # Write branch energization solution
+    CP[:x] = Dict();
+    resultfile = open(string(dir_case_result, "res_x.csv"), "w")
+    print(resultfile, "Branch Index, From Bus , To Bus,")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, branch) in ref[:branch]
+            # if branch["b_fr"] == 0
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, branch["f_bus"])
+                print(resultfile, ", ")
+                print(resultfile, branch["t_bus"])
+                print(resultfile, ",")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, round(value(model[:x][(branch["f_bus"], branch["t_bus"]),t])))
+                        print(resultfile, ",")
+                        # detection of changing point
+                        if (value(model[:x][(branch["f_bus"], branch["t_bus"]),t])==0) & (value(model[:x][(branch["f_bus"], branch["t_bus"]),t+1])==1)
+                            CP[:x][i] = t
+                        end
+                    else
+                        print(resultfile, round(value(model[:x][(branch["f_bus"], branch["t_bus"]),t])))
+                    end
+                end
+            println(resultfile, " ")
+            #end
+    end
+    close(resultfile)
+
+    # Write generator energization solution
+    CP[:y] = Dict();
+    resultfile = open(string(dir_case_result, "res_y.csv"), "w")
+    print(resultfile, "Gen Index, Gen Bus,")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, gen) in ref[:gen]
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, gen["gen_bus"])
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, round(value(model[:y][i,t])))
+                        print(resultfile, ",")
+                        # detection of changing point
+                        if (value(model[:y][i,t])==0) & (value(model[:y][i,t+1])==1)
+                            CP[:y][i] = t
+                        end
+                    else
+                        print(resultfile, value(model[:y][i,t]))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+    # Write bus energization solution
+    CP[:u] = Dict();
+    resultfile = open(string(dir_case_result, "res_u.csv"), "w")
+    print(resultfile, "Bus Index,")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, bus) in ref[:bus]
+                print(resultfile, i)
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, round(value(model[:u][i,t])))
+                        print(resultfile, ",")
+                        # detection of changing point
+                        if (value(model[:u][i,t])==0) & (value(model[:u][i,t+1])==1)
+                            CP[:u][i] = t
+                        end
+                    else
+                        print(resultfile, round(value(model[:u][i,t])))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+
+    # Write generator active power dispatch solution
+    resultfile = open(string(dir_case_result, "res_pg.csv"), "w")
+    print(resultfile, "Gen Index, Gen Bus,")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, gen) in ref[:gen]
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, gen["gen_bus"])
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, round(value(model[:pg][i,t])*100))
+                        print(resultfile, ",")
+                    else
+                        print(resultfile, round(value(model[:pg][i,t])*100))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+    # Write generator rective power dispatch solution
+    resultfile = open(string(dir_case_result, "res_qg.csv"), "w")
+    print(resultfile, "Gen Index, Gen Bus,")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, gen) in ref[:gen]
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, gen["gen_bus"])
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, round(value(model[:qg][i,t])*100))
+                        print(resultfile, ",")
+                    else
+                        print(resultfile, round(value(model[:qg][i,t])*100))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+    # Write load active power dispatch solution
+    resultfile = open(string(dir_case_result, "res_pl.csv"), "w")
+    print(resultfile, "Load Index, Bus Index, ")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, load) in ref[:load]
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, load["load_bus"])
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, round(value(model[:pl][i,t])*100))
+                        print(resultfile, ",")
+                    else
+                        print(resultfile, round(value(model[:pl][i,t])*100))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+    # Write load rective power dispatch solution
+    resultfile = open(string(dir_case_result, "res_ql.csv"), "w")
+    print(resultfile, "Load Index, Bus Index, ")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, load) in ref[:load]
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, load["load_bus"])
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, round(value(model[:ql][i,t])*100))
+                        print(resultfile, ",")
+                    else
+                        print(resultfile, round(value(model[:ql][i,t])*100))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+
     # #---------------- Interpolate current plan to time series (one-minute based) data --------------------
-    # # Interpolate generator energization solution to time series (one-minute based) data
-    # resultfile = open(string(dir_case_result, "Interpol_y.csv"), "w")
-    # print(resultfile, "Gen Index, Gen Bus,")
-    # for t in time_series
-    #     if t<time_final
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, gen) in ref[:gen]
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             print(resultfile, gen["gen_bus"])
-    #             print(resultfile, ", ")
-    #             for t in time_series
-    #                 if t<time_final
-    #                    # Determine which stages should the current time instant be
-    #                     stage_index = ceil(t/time_step)
-    #                     # Determine if the current generator has a changing scenario
-    #                     if i in keys(CP[:y])
-    #                         # check if the current stage is the changing stage
-    #                         # mark changing stage different from 0 or 1 (do not use string as it causes problems after reading from CSV)
-    #                         if CP[:y][i] == stage_index
-    #                             print(resultfile, Int(2))
-    #                             print(resultfile, ", ")
-    #                         else
-    #                             print(resultfile, Int(round(value(y[i,stage_index]))))
-    #                             print(resultfile, ", ")
-    #                         end
-    #                     else
-    #                         print(resultfile, Int(round(value(y[i,stage_index]))))
-    #                         print(resultfile, ", ")
-    #                     end
-    #                 else
-    #                     # Determine which stages should the current time instant be
-    #                     stage_index = ceil(t/time_step)
-    #                     print(resultfile, Int(round(value(y[i,stage_index]))))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    # end
-    # close(resultfile)
-    #
-    #
-    # # Interpolate generator dispatch solution to time series (one-minute based) data
-    # resultfile = open(string(dir_case_result, "Interpol_pg.csv"), "w")
-    # print(resultfile, "Gen Index, Gen Bus,")
-    # for t in time_series
-    #     if t<time_final
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, gen) in ref[:gen]
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             print(resultfile, gen["gen_bus"])
-    #             print(resultfile, ", ")
-    #             for t in time_series
-    #                 if t<time_final
-    #                     # Determine which stages should the current time instant be
-    #                     stage_index = ceil(t/time_step)
-    #                     print(resultfile, round(value(pg[i,stage_index])*100))
-    #                     print(resultfile, ", ")
-    #                 else
-    #                     # Determine which stages should the current time instant be
-    #                     stage_index = ceil(t/time_step)
-    #                     print(resultfile, round(value(pg[i,stage_index])*100))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    # end
-    # close(resultfile)
-    #
-    # # Interpolate bus energization solution to time series (one-minute based) data
-    # resultfile = open(string(dir_case_result, "Interpol_u.csv"), "w")
-    # print(resultfile, "Bus Index,")
-    # for t in time_series
-    #     if t<time_final
-    #         print(resultfile, t)
-    #         print(resultfile, ", ")
-    #     else
-    #         println(resultfile, t)
-    #     end
-    # end
-    # for (i, bus) in ref[:bus]
-    #             print(resultfile, i)
-    #             print(resultfile, ", ")
-    #             for t in time_series
-    #                 if t<time_final
-    #                    # Determine which stages should the current time instant be
-    #                     stage_index = ceil(t/time_step)
-    #                     if i in keys(CP[:u])
-    #                         # check if the current stage is the changing stage
-    #                         if CP[:u][i] == stage_index  # If yes, mark the time series data as "tbd"
-    #                             print(resultfile, Int(2))
-    #                             print(resultfile, ", ")
-    #                         else                          # If no, use the previously calculated values
-    #                             print(resultfile, Int(round(value(u[i,stage_index]))))
-    #                             print(resultfile, ", ")
-    #                         end
-    #                     else
-    #                         print(resultfile, Int(round(value(u[i,stage_index]))))
-    #                         print(resultfile, ", ")
-    #                     end
-    #                 else
-    #                     # Determine which stages should the current time instant be
-    #                     stage_index = ceil(t/time_step)
-    #                     print(resultfile, Int(round(value(u[i,stage_index]))))
-    #                 end
-    #             end
-    #         println(resultfile, " ")
-    # end
-    # close(resultfile)
+    # Interpolate generator energization solution to time series (one-minute based) data
+    resultfile = open(string(dir_case_result, "Interpol_y.csv"), "w")
+    print(resultfile, "Gen Index, Gen Bus,")
+    for t in time_series
+        if t<time_final
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, gen) in ref[:gen]
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, gen["gen_bus"])
+                print(resultfile, ", ")
+                for t in time_series
+                    if t<time_final
+                       # Determine which stages should the current time instant be
+                        stage_index = ceil(t/time_step)
+                        # Determine if the current generator has a changing scenario
+                        if i in keys(CP[:y])
+                            # check if the current stage is the changing stage
+                            # mark changing stage different from 0 or 1 (do not use string as it causes problems after reading from CSV)
+                            if CP[:y][i] == stage_index
+                                print(resultfile, Int(2))
+                                print(resultfile, ", ")
+                            else
+                                print(resultfile, Int(round(value(model[:y][i,stage_index]))))
+                                print(resultfile, ", ")
+                            end
+                        else
+                            print(resultfile, Int(round(value(model[:y][i,stage_index]))))
+                            print(resultfile, ", ")
+                        end
+                    else
+                        # Determine which stages should the current time instant be
+                        stage_index = ceil(t/time_step)
+                        print(resultfile, Int(round(value(model[:y][i,stage_index]))))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+
+    # Interpolate generator dispatch solution to time series (one-minute based) data
+    resultfile = open(string(dir_case_result, "Interpol_pg.csv"), "w")
+    print(resultfile, "Gen Index, Gen Bus,")
+    for t in time_series
+        if t<time_final
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, gen) in ref[:gen]
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, gen["gen_bus"])
+                print(resultfile, ", ")
+                for t in time_series
+                    if t<time_final
+                        # Determine which stages should the current time instant be
+                        stage_index = ceil(t/time_step)
+                        print(resultfile, round(value(model[:pg][i,stage_index])*100))
+                        print(resultfile, ", ")
+                    else
+                        # Determine which stages should the current time instant be
+                        stage_index = ceil(t/time_step)
+                        print(resultfile, round(value(model[:pg][i,stage_index])*100))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+    # Interpolate bus energization solution to time series (one-minute based) data
+    resultfile = open(string(dir_case_result, "Interpol_u.csv"), "w")
+    print(resultfile, "Bus Index,")
+    for t in time_series
+        if t<time_final
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, bus) in ref[:bus]
+                print(resultfile, i)
+                print(resultfile, ", ")
+                for t in time_series
+                    if t<time_final
+                       # Determine which stages should the current time instant be
+                        stage_index = ceil(t/time_step)
+                        if i in keys(CP[:u])
+                            # check if the current stage is the changing stage
+                            if CP[:u][i] == stage_index  # If yes, mark the time series data as "tbd"
+                                print(resultfile, Int(2))
+                                print(resultfile, ", ")
+                            else                          # If no, use the previously calculated values
+                                print(resultfile, Int(round(value(model[:u][i,stage_index]))))
+                                print(resultfile, ", ")
+                            end
+                        else
+                            print(resultfile, Int(round(value(model[:u][i,stage_index]))))
+                            print(resultfile, ", ")
+                        end
+                    else
+                        # Determine which stages should the current time instant be
+                        stage_index = ceil(t/time_step)
+                        print(resultfile, Int(round(value(model[:u][i,stage_index]))))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
 
     return ref, model
 end
