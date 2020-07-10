@@ -15,5 +15,7 @@ export solve_restoration_full
 export solve_restoration_part
 export solve_section
 export solve_startup
+export load_network
+export load_gen
 
 end
