@@ -97,7 +97,7 @@ Form the nodal constraints:
 \end{align*}
 ```
 """
-function form_nodal(ref, model, stages)
+function form_nodal(model, ref, stages)
     vl = model[:vl]
     vb = model[:vb]
     v = model[:v]
@@ -198,7 +198,7 @@ q_{bij,t}=-B_{ii}(2vl_{ij,t}-x_{ij,t}) - B_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) 
 \end{align*}
 ```
 """
-function form_branch(ref, model, stages)
+function form_branch(model, ref, stages)
 
     vl = model[:vl]
     al = model[:al]

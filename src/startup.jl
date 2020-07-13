@@ -24,7 +24,7 @@ Solve generator start-up problem
 - Constraints:
     -
 """
-function solve_startup(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+function solve_startup(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap, wind)
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -58,16 +58,42 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
     # define load variables
     model = def_var_load(model, ref, stages)
 
+    # add wind into ref
+    # #TODO: load wind data from csv or raw
+    # #TODO: wind power distribution; currently Guassian is used
+    # ref[:wind] = Dict(
+    # 4 => Dict("bus"=>4, "pw_mean"=>4, "pw_dev"=>1),
+    # 14 => Dict("bus"=>14, "pw_mean"=>5, "pw_dev"=>1.2),
+    # 24 => Dict("bus"=>24, "pw_mean"=>6, "pw_dev"=>1.5),
+    # )
+    if wind["activation"] == 1
+        model = def_var_wind(model, ref, stages)
+    end
+
+
     # ------------Define constraints ---------------------
     # generator cranking constraint
-    model = form_gen_cranking_1(ref, model, stages, Pcr, Tcr, Krp)
+    model = form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
 
     # load pickup logic
-    model = form_load_logic_1(ref, model, stages)
+    model = form_load_logic_1(model, ref, stages)
+
+    # wind power dispatch chance constraint
+    if wind["activation"] == 1
+        model, pw_sp = form_wind_saa(model, ref, stages, wind["sample_number"], wind["violation_probability"])
+    end
 
     # generator capacity is greater than load for all time
-    for t in stages
-        @constraint(model, model[:pg_total][t] >= model[:pd_total][t])
+    if wind["activation"] == 1
+        println("Generation start-up with wind power")
+        for t in stages
+            @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
+        end
+    else
+        println("Generation start-up without wind power")
+        for t in stages
+            @constraint(model, model[:pg_total][t] >= model[:pd_total][t])
+        end
     end
 
 

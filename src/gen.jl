@@ -55,7 +55,7 @@ y_{g,t} <= y_{g,t+1}
 \end{align*}
 ```
 """
-function form_gen_logic(ref, model, stages, nstage, Krp, Pcr)
+function form_gen_logic(model, ref, stages, nstage, Krp, Pcr)
     for g in keys(ref[:gen])
         # generator ramping rate constraint
         for t in 1:nstage-1
@@ -103,7 +103,7 @@ Generator cranking constraint
 \end{align*}
 ```
 """
-function form_gen_cranking(ref, model, stages, Pcr, Tcr)
+function form_gen_cranking(model, ref, stages, Pcr, Tcr)
     println("formulating generator cranking constraint")
     for t in stages
         for g in keys(ref[:gen])
@@ -134,7 +134,7 @@ end
 @doc raw"""
 Generator cranking constraint (form 1)
 """
-function form_gen_cranking_1(ref, model, stages, Pcr, Tcr, Krp)
+function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
 
     # calculate ramping time
     # here we use minimum power

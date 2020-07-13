@@ -80,19 +80,19 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     # ------------Define constraints ---------------------
     # nodal constraint
-    model = form_nodal(ref, model, stages)
+    model = form_nodal(model, ref, stages)
 
     # branch (power flow) constraints
-    model = form_branch(ref, model, stages)
+    model = form_branch(model, ref, stages)
 
     # generator control constraint
-    model = form_gen_logic(ref, model, stages, nstage, Krp, Pcr)
+    model = form_gen_logic(model, ref, stages, nstage, Krp, Pcr)
 
     # generator cranking constraint
-    model = form_gen_cranking(ref, model, stages, Pcr, Tcr)
+    model = form_gen_cranking(model, ref, stages, Pcr, Tcr)
 
     # load control constraint
-    model = form_load_logic(ref, model, stages)
+    model = form_load_logic(model, ref, stages)
 
 
 

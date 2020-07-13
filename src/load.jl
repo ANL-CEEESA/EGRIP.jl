@@ -47,7 +47,7 @@ Load pickup constraint
 \end{align*}
 ```
 """
-function form_load_logic(ref, model, stages)
+function form_load_logic(model, ref, stages)
 
     println("formulating load logic constraints")
     pl = model[:pl]
@@ -100,7 +100,7 @@ end
 @doc raw"""
 Load pickup constraint form 1
 """
-function form_load_logic_1(ref, model, stages)
+function form_load_logic_1(model, ref, stages)
 
     z = model[:z]
     zs = model[:zs]

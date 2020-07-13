@@ -6,6 +6,7 @@ include("startup.jl")
 include("flow.jl")
 include("gen.jl")
 include("load.jl")
+include("renewable.jl")
 include("util.jl")
 
 # we are currently relying on the IO function of PowerModels's

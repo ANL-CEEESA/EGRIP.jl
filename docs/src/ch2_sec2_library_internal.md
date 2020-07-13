@@ -48,6 +48,14 @@ Order   = [:type, :function]
 Private  = true
 ```
 
+## Renewable Models
+```@autodocs
+Modules = [EGRIP]
+Pages   = ["renewable.jl"]
+Order   = [:type, :function]
+Private  = true
+```
+
 ## Util Functions
 ```@autodocs
 Modules = [EGRIP]
