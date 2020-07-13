@@ -1,14 +1,6 @@
 # load registered package
 using JuMP
 
-
-# using Plots
-# pyplot() # Choose a backend
-# gr()
-
-ENV["MPLBACKEND"]="tkagg"
-using PyPlot
-
 # The "current working directory" is very important for correctly loading modules.
 # One should refer to "Section 40 Code Loading" in Julia Manual for more details.
 
@@ -69,19 +61,31 @@ PyPlot.pygui(true)
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 rcParams["font.family"] = "Arial"
 
-fig, ax = PyPlot.subplots(figsize=(14, 6))
-ax.plot(t_step:t_step:t_final, (Pg_step)*100,  "b*-", linewidth=2, markersize=4, label="generation")
-ax.plot(t_step:t_step:t_final, (Pd_step)*100,  "rs-.", linewidth=2, markersize=4, label="load")
-ax.legend(loc="upper left'", fontsize=14)
-ax.set_title("Generation Startup", fontdict=Dict("fontsize"=>14))
-ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>14))
-ax.yaxis.set_label_text("Generation capacity", fontdict=Dict("fontsize"=>14))
-ax.xaxis.set_tick_params(labelsize=14)
-ax.yaxis.set_tick_params(labelsize=14)
-fig.tight_layout()
+fig, ax = PyPlot.subplots(figsize=(8, 5))
+ax.plot(t_step:t_step:t_final, (Pg_step)*100,  "b*-", linewidth=2, markersize=4, label="Generation")
+ax.plot(t_step:t_step:t_final, (Pd_step)*100,  "rs-.", linewidth=2, markersize=4, label="Load")
+ax.legend(loc="upper left", fontsize=16)
+ax.set_title("Generation and Load Trajectories", fontdict=Dict("fontsize"=>16))
+ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>16))
+ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>16))
+ax.xaxis.set_tick_params(labelsize=16)
+ax.yaxis.set_tick_params(labelsize=16)
+fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_1.png")
+PyPlot.savefig(sav_dict)
 
-
+fig, ax = PyPlot.subplots(figsize=(8, 5))
+ax.plot(t_step:t_step:t_final, (Pg_step-Pd_step)*100,  "b*-", linewidth=2, markersize=4)
+ax.set_title("Net Generation Trajectory", fontdict=Dict("fontsize"=>16))
+ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>16))
+ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>16))
+ax.xaxis.set_tick_params(labelsize=16)
+ax.yaxis.set_tick_params(labelsize=16)
+fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+PyPlot.show()
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_2.png")
+PyPlot.savefig(sav_dict)
 
 # # -------------- Command line --------------
 # dir_case_network = ARGS[1]
