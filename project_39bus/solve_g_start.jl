@@ -1,8 +1,13 @@
 # load registered package
-using Plots
 using JuMP
-gr()
-Plots.GRBackend()
+
+
+# using Plots
+# pyplot() # Choose a backend
+# gr()
+
+ENV["MPLBACKEND"]="tkagg"
+using PyPlot
 
 # The "current working directory" is very important for correctly loading modules.
 # One should refer to "Section 40 Code Loading" in Julia Manual for more details.
@@ -58,17 +63,23 @@ for t in stages
 end
 
 # plot
-plot(t_step:t_step:t_final, (Pg_step)*100, w=2)
-xaxis!("Time (Min)")
-yaxis!("Total generation capacity (MW)")
+using PyPlot
+# If true, return Python-based GUI; otherwise, return Julia backend
+PyPlot.pygui(true)
+rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
+rcParams["font.family"] = "Arial"
 
-plot(t_step:t_step:t_final, (Pd_step)*100, w=2)
-xaxis!("Time (Min)")
-yaxis!("Total load (MW)")
-
-plot(t_step:t_step:t_final, (Pg_step - Pd_step)*100, w=2)
-xaxis!("Time (Min)")
-yaxis!("Net generation capacity (MW)")
+fig, ax = PyPlot.subplots(figsize=(14, 6))
+ax.plot(t_step:t_step:t_final, (Pg_step)*100,  "b*-", linewidth=2, markersize=4, label="generation")
+ax.plot(t_step:t_step:t_final, (Pd_step)*100,  "rs-.", linewidth=2, markersize=4, label="load")
+ax.legend(loc="upper left'", fontsize=14)
+ax.set_title("Generation Startup", fontdict=Dict("fontsize"=>14))
+ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>14))
+ax.yaxis.set_label_text("Generation capacity", fontdict=Dict("fontsize"=>14))
+ax.xaxis.set_tick_params(labelsize=14)
+ax.yaxis.set_tick_params(labelsize=14)
+fig.tight_layout()
+PyPlot.show()
 
 
 
