@@ -44,15 +44,15 @@ dir_case_network = "case39.m"
 dir_case_blackstart = "BS_generator.csv"
 network_data_format = "matpower"
 dir_case_result = "results_startup/"
-t_final = 300
+t_final = 500
 t_step = 10
 gap = 0.1
 nstage = t_final/t_step;
 stages = 1:nstage;
 
 # solve the problem
-test_from = 3
-test_end = 3
+test_from = 1
+test_end = 5
 # plotting setup
 line_style = [(0,(3,5,1,5)), (0,(5,1)), (0,(5,5)), (0,(5,10)), (0,(1,1))]
 line_colors = ["b", "r", "m", "lime", "darkorange"]

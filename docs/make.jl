@@ -24,10 +24,6 @@ makedocs(
         "Development Overview"=>"ch3_sec1_development_overview.md",
         "Code Loading"=>"ch3_sec2_dev_code_loading.md",
         "Package Organization"=>"ch3_sec3_dev_package_org.md"
-        ],
-        "Research" =>[
-        "Literature Review"=>"ch4_sec1_literature.md",
-        "Benchmark Testing"=>"ch4_sec2_benchmark.md",
         ]
     ]
 )
