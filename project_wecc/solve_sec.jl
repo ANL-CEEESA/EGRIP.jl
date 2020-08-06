@@ -14,14 +14,14 @@ using CSV
 # include("../src/EGRIP.jl")
 # using .EGRIP
 
-# # # ------------ Interactive --------------
-dir_case_network = "case39.m"
-dir_case_blackstart = "BS_generator_2.csv"
-dir_case_result = "results_sec/"
-gap = 0
-ref, network_section, z_val, f_val = solve_section(dir_case_network, dir_case_blackstart, dir_case_result, gap)
+# ------------ load manually sectionalized data from JSON --------------
+# load data for restoration
+network_section = Dict()
+network_section = JSON.parsefile("WECC_dataset/network_section.json")
+# load network data
+ref = load_network("WECC_BaseCase.raw", "psse")
 
-
+# ------------ processing ref data structure --------------
 # we need to split ref data based on sectionalization
 section_ref = Dict()
 for i in keys(network_section)
@@ -34,9 +34,12 @@ for i in keys(network_section)
     end
 end
 
+# TODO: manually assign bs gen bus as reference bus for each section
+section_ref[1][:ref_buses] = 78
+section_ref[2][:ref_buses] = 147
+
 # for now we need to manually go through all keys
 # :arcs_to, :arcs, :arcs_from,
-
 # general information
 for i in keys(network_section)
     section_ref[i][:baseMVA] = ref[:baseMVA]
@@ -49,12 +52,6 @@ end
 
 # bus name as keys
 for i in keys(network_section)
-    # add bs gen bus in the bus list
-    push!(network_section[i], i)
-
-    # assign bs gen bus as reference bus for each section
-    section_ref[i][:ref_buses] = i
-
     # copy other bus related information for each section
     for j in network_section[i]  # buses in each section
         section_ref[i][:bus][j] = ref[:bus][j]
@@ -141,44 +138,29 @@ for (idx_gen, info_gen) in ref[:gen]
 end
 
 # save sectionalized data
-a=["ref_38","ref_39"]
-open(string(dir_case_result, a[1], ".json"), "w") do f
-    JSON.print(f, section_ref[38])
+a=["sec_1","sec_2"]
+open(string("WECC_dataset/", a[1], ".json"), "w") do f
+    JSON.print(f, section_ref[1])
 end
-open(string(dir_case_result, a[2], ".json"), "w") do f
-    JSON.print(f, section_ref[39])
+open(string("WECC_dataset/", a[2], ".json"), "w") do f
+    JSON.print(f, section_ref[2])
 end
 
 
 # load data for restoration
 dict = Dict()
-
 string(dir_case_result, a[1], ".json")
 dict = JSON.parsefile(string(dir_case_result, a[1], ".json"))  # parse and transform data
 
-dict = Dict([Symbol(key) => val for (key, val) in pairs(dict)])
-dict[:gen] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:gen])])
-dict[:bus] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus])])
-dict[:bus_gens] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus_gens])])
-dict[:bus_arcs] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus_arcs])])
-dict[:bus_loads] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus_loads])])
-dict[:bus_shunts] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus_shunts])])
-dict[:branch] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:branch])])
-dict[:load] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:load])])
-dict[:buspairs] = Dict([ (parse(Int, split(key, ['(', ',', ')'])[2]),
-    parse(Int, split(key, ['(', ',', ')'])[3]))=> val for (key, val) in pairs(dict[:buspairs])])
-dict[:arcs] = [Tuple(val) for (key,val) in pairs(dict[:arcs])]
-dict[:bus_arcs] = Dict([key=>[Tuple(arc) for arc in val] for (key,val) in pairs(dict[:bus_arcs])])
-
-# ------------ Interactive --------------
-dir_case_network = string(dir_case_result, a[1], ".json")
-dir_case_blackstart = "BS_generator.csv"
-network_data_format = "json"
-dir_case_result = "results_sec/"
-t_final = 500
-t_step = 100
-gap = 0.5
-solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+# # ------------ Interactive --------------
+# dir_case_network = string(dir_case_result, a[1], ".json")
+# dir_case_blackstart = "BS_generator.csv"
+# network_data_format = "json"
+# dir_case_result = "results_sec/"
+# t_final = 500
+# t_step = 100
+# gap = 0.5
+# solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
 # # -------------- Command line --------------
 # dir_case_network = ARGS[1]

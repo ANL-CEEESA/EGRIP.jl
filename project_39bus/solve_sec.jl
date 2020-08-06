@@ -151,26 +151,10 @@ open(string(dir_case_result, a[2], ".json"), "w") do f
 end
 
 
-# load data for restoration
-dict = Dict()
-
-string(dir_case_result, a[1], ".json")
-dict = JSON.parsefile(string(dir_case_result, a[1], ".json"))  # parse and transform data
-
-dict = Dict([Symbol(key) => val for (key, val) in pairs(dict)])
-dict[:gen] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:gen])])
-dict[:bus] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus])])
-dict[:bus_gens] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus_gens])])
-dict[:bus_arcs] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus_arcs])])
-dict[:bus_loads] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus_loads])])
-dict[:bus_shunts] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:bus_shunts])])
-dict[:branch] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:branch])])
-dict[:load] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(dict[:load])])
-dict[:buspairs] = Dict([ (parse(Int, split(key, ['(', ',', ')'])[2]),
-    parse(Int, split(key, ['(', ',', ')'])[3]))=> val for (key, val) in pairs(dict[:buspairs])])
-dict[:arcs] = [Tuple(val) for (key,val) in pairs(dict[:arcs])]
-dict[:bus_arcs] = Dict([key=>[Tuple(arc) for arc in val] for (key,val) in pairs(dict[:bus_arcs])])
-
+# # testing: load data for restoration
+# dict = Dict()
+# string(dir_case_result, a[1], ".json")
+# dict = JSON.parsefile(string(dir_case_result, a[1], ".json"))  # parse and transform data
 
 # ------------ Interactive --------------
 dir_case_network = string(dir_case_result, a[1], ".json")
