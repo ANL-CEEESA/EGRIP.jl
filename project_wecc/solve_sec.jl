@@ -35,8 +35,8 @@ for i in keys(network_section)
 end
 
 # TODO: manually assign bs gen bus as reference bus for each section
-section_ref[1][:ref_buses] = 78
-section_ref[2][:ref_buses] = 147
+section_ref["1"][:ref_buses] = 78
+section_ref["2"][:ref_buses] = 147
 
 # for now we need to manually go through all keys
 # :arcs_to, :arcs, :arcs_from,
@@ -140,27 +140,59 @@ end
 # save sectionalized data
 a=["sec_1","sec_2"]
 open(string("WECC_dataset/", a[1], ".json"), "w") do f
-    JSON.print(f, section_ref[1])
+    JSON.print(f, section_ref["1"])
 end
 open(string("WECC_dataset/", a[2], ".json"), "w") do f
-    JSON.print(f, section_ref[2])
+    JSON.print(f, section_ref["2"])
 end
 
+# testing: load data for restoration
+function data_process(ref)
+    println("print dir_case_network")
+    ref = Dict([Symbol(key) => val for (key, val) in pairs(ref)])
+    ref[:gen] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:gen])])
+    ref[:bus] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus])])
+    ref[:bus_gens] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus_gens])])
+    ref[:bus_arcs] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus_arcs])])
+    ref[:bus_loads] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus_loads])])
+    ref[:bus_shunts] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(ref[:bus_shunts])])
+    ref[:branch] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:branch])])
+    ref[:load] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:load])])
+    ref[:shunt] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:shunt])])
+    ref[:buspairs] = Dict([ (parse(Int, split(key, ['(', ',', ')'])[2]),
+        parse(Int, split(key, ['(', ',', ')'])[3]))=> val for (key, val) in pairs(ref[:buspairs])])
+    ref[:arcs] = [Tuple(val) for (key, val) in pairs(ref[:arcs])]
+    ref[:bus_arcs] = Dict([key=>[Tuple(arc) for arc in val] for (key,val) in pairs(ref[:bus_arcs])])
+    println("complete loading network data in json format")
+    return ref
+end
 
-# load data for restoration
-dict = Dict()
-string(dir_case_result, a[1], ".json")
-dict = JSON.parsefile(string(dir_case_result, a[1], ".json"))  # parse and transform data
+dict_1 = Dict()
+dict_2 = Dict()
+dict_1 = JSON.parsefile(string("WECC_dataset/", a[1], ".json"))
+dict_2 = JSON.parsefile(string("WECC_dataset/", a[2], ".json"))
+
+dict_1 = data_process(dict_1)
+
 
 # # ------------ Interactive --------------
-# dir_case_network = string(dir_case_result, a[1], ".json")
-# dir_case_blackstart = "BS_generator.csv"
-# network_data_format = "json"
-# dir_case_result = "results_sec/"
-# t_final = 500
-# t_step = 100
-# gap = 0.5
-# solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+dir_case_network = string("WECC_dataset/", a[1], ".json")
+dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
+network_data_format = "json"
+dir_case_result = "results_sec_1/"
+t_final = 500
+t_step = 250
+gap = 1
+solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+
+dir_case_network = string("WECC_dataset/", a[2], ".json")
+dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
+network_data_format = "json"
+dir_case_result = "results_sec_2/"
+t_final = 500
+t_step = 250
+gap = 1
+solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
 # # -------------- Command line --------------
 # dir_case_network = ARGS[1]

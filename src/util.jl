@@ -31,6 +31,7 @@ function load_network(dir_case_network, network_data_format)
         ref[:bus_loads] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus_loads])])
         ref[:bus_shunts] = Dict([parse(Int, string(key)) => val for (key, val) in pairs(ref[:bus_shunts])])
         ref[:branch] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:branch])])
+        ref[:shunt] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:shunt])])
         ref[:load] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:load])])
         ref[:buspairs] = Dict([ (parse(Int, split(key, ['(', ',', ')'])[2]),
             parse(Int, split(key, ['(', ',', ')'])[3]))=> val for (key, val) in pairs(ref[:buspairs])])
