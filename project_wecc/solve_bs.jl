@@ -17,7 +17,7 @@ using PowerModels
 dir_case_network = "WECC_BaseCase.raw"
 # dir_case_network = "WECC_WIND10.raw"
 
-dir_case_blackstart = "BS_generator_wecc.csv"
+dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
 network_data_format = "psse"
 dir_case_result = "results/"
 t_final = 500
