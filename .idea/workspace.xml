@@ -25,8 +25,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/project_wecc/WECC_dataset/network_manu_section.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="74">
-              <caret line="68" column="87" selection-start-line="68" selection-start-column="87" selection-end-line="68" selection-end-column="87" />
+            <state relative-caret-position="238">
+              <caret line="14" column="23" selection-start-line="14" selection-start-column="23" selection-end-line="14" selection-end-column="23" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -56,10 +56,10 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="1">
+  <component name="ProjectFrameBounds">
     <option name="y" value="23" />
     <option name="width" value="1680" />
-    <option name="height" value="972" />
+    <option name="height" value="967" />
   </component>
   <component name="ProjectView">
     <navigator proportions="" version="1">
@@ -222,9 +222,10 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1680" height="973" extended-state="6" />
+    <frame x="0" y="23" width="1680" height="967" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24954791" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24954791" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -237,7 +238,7 @@
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Terminal" order="8" />
       <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
-      <window_info active="true" anchor="bottom" id="Python Console" order="10" visible="true" weight="0.3643587" />
+      <window_info anchor="bottom" id="Python Console" order="10" visible="true" weight="0.36685714" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -265,9 +266,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/project_wecc/WECC_dataset/network_section.json">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/project_wecc/WECC_dataset/network_line_geoJson.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="68">
@@ -278,10 +276,13 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/project_wecc/WECC_dataset/network_section.json">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/project_wecc/WECC_dataset/network_manu_section.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="74">
-          <caret line="68" column="87" selection-start-line="68" selection-start-column="87" selection-end-line="68" selection-end-column="87" />
+        <state relative-caret-position="238">
+          <caret line="14" column="23" selection-start-line="14" selection-start-column="23" selection-end-line="14" selection-end-column="23" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
