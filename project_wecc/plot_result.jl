@@ -18,12 +18,14 @@ label_list = ["W/O Renewable", "W Renewable: Sample 1000, Prob 0.05",
 # print(string(pwd()))
 
 # # ---------------- read data ---------------------
-res_path = "results_sec_1_gap100"
+# res_path = "results_sec_1_gap100"
+# res_path = "results_sec_2_gap100"
+res_path = "results"
 
 pg = CSV.read(string(res_path, "/", "res_pg.csv"))
 pl = CSV.read(string(res_path, "/", "res_pl.csv"))
 
-step_all = 1:20;
+step_all = 1:(size(pg)[2] - 2);
 
 # calculate load trajectory
 pl_step = []
