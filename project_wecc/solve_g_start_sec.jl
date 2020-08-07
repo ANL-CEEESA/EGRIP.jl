@@ -1,3 +1,4 @@
+
 # The "current working directory" is very important for correctly loading modules.
 # One should refer to "Section 40 Code Loading" in Julia Manual for more details.
 
@@ -175,24 +176,23 @@ dict_1 = data_process(dict_1)
 
 
 # # ------------ Interactive --------------
-dir_case_network = string("WECC_dataset/", a[1], ".json")
-dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
-network_data_format = "json"
-dir_case_result = "results_sec_1_gap100/"
-t_final = 300
-t_step = 15
-gap = 1
-solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
-
+# dir_case_network = string("WECC_dataset/", a[1], ".json")
+# dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
+# network_data_format = "json"
+# dir_case_result = "results_sec_1/"
+# t_final = 500
+# t_step = 15
+# gap = 0.1
+# ref, model = solve_startup(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap, Dict("activation"=>0))
 
 dir_case_network = string("WECC_dataset/", a[2], ".json")
 dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
 network_data_format = "json"
-dir_case_result = "results_sec_2_gap100/"
+dir_case_result = "results_sec_2/"
 t_final = 500
 t_step = 15
 gap = 1
-solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+ref, model = solve_startup(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap, Dict("activation"=>0))
 
 # # -------------- Command line --------------
 # dir_case_network = ARGS[1]

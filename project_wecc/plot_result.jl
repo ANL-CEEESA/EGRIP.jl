@@ -1,6 +1,9 @@
 using PyPlot
 using CSV
 cd(@__DIR__)
+push!(LOAD_PATH,"../src/")
+using EGRIP
+
 # ----------------- plotting setup -------------
 # If true, return Python-based GUI; otherwise, return Julia backend
 PyPlot.pygui(true)
@@ -15,7 +18,9 @@ label_list = ["W/O Renewable", "W Renewable: Sample 1000, Prob 0.05",
                             "W Renewable: Sample 1000, Prob 0.20"]
 
 
-# print(string(pwd()))
+# # ---------------- calculate total load ---------------------
+ref = load_network("WECC_BaseCase.raw", "psse")
+total_load = sum(ref[:load][i]["pd"] for i in keys(ref[:load])) * ref[:baseMVA]
 
 # # ---------------- read data ---------------------
 # res_path = "results_sec_1_gap100"
@@ -30,11 +35,11 @@ step_all = 1:(size(pg)[2] - 2);
 # calculate load trajectory
 pl_step = []
 for t in step_all
-    push!(pl_step, sum(pl[:,t]))
+    push!(pl_step, sum(pl[:,t+2]))
 end
 pg_step = []
 for t in step_all
-    push!(pg_step, sum(pg[:,t]))
+    push!(pg_step, sum(pg[:,t+2]))
 end
 
 # ---------------- plotting ------------------
@@ -43,7 +48,7 @@ ax.plot(step_all, pg_step,  "b*-", linewidth=2, markersize=4, label="Gen")
 ax.plot(step_all, pl_step,  "rs-.", linewidth=2, markersize=4, label="Load")
 ax.legend(loc="upper left", fontsize=16)
 # ax.set_title("Load Trajectories", fontdict=Dict("fontsize"=>16))
-ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>16))
+ax.xaxis.set_label_text("Stages", fontdict=Dict("fontsize"=>16))
 ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>16))
 ax.xaxis.set_tick_params(labelsize=16)
 ax.yaxis.set_tick_params(labelsize=16)
