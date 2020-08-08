@@ -35,8 +35,8 @@ for i in keys(network_section)
 end
 
 # TODO: manually assign bs gen bus as reference bus for each section
-section_ref["1"][:ref_buses] = 78
-section_ref["2"][:ref_buses] = 147
+section_ref["1"][:ref_buses] = 147 # south
+section_ref["2"][:ref_buses] = 78
 
 # for now we need to manually go through all keys
 # :arcs_to, :arcs, :arcs_from,

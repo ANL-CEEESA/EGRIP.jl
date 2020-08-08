@@ -23,9 +23,9 @@ ref = load_network("WECC_BaseCase.raw", "psse")
 total_load = sum(ref[:load][i]["pd"] for i in keys(ref[:load])) * ref[:baseMVA]
 
 # # ---------------- read data ---------------------
-# res_path = "results_sec_1_gap100"
+res_path = "results_sec_1_gap100"
 # res_path = "results_sec_2_gap100"
-res_path = "results"
+# res_path = "results"
 
 pg = CSV.read(string(res_path, "/", "res_pg.csv"))
 pl = CSV.read(string(res_path, "/", "res_pl.csv"))
