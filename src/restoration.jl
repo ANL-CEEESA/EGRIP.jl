@@ -97,11 +97,8 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
 
     #------------------- Define objectives--------------------
-    # @objective(model, Min, sum( sum(1 - y[g,t] for g in keys(ref[:gen])) for t in stages ) + sum( sum(t*z[l,t] for l in keys(ref[:load])) for t in stages ) )
-    # @objective(model, Min, sum( sum(-pl[l,t] for l in keys(ref[:load]) if ref[:load][l]["pd"] >= 0)
-    #         + sum(pl[l,t] for l in keys(ref[:load]) if ref[:load][l]["pd"] < 0) for t in stages ) )
-    # @objective(model, Min, sum(10*sum(1 - y[g,t] for g in keys(ref[:gen])) + sum(x[a,t] for a in keys(ref[:buspairs])) for t in stages) )
-    @objective(model, Min, sum(sum(1 - model[:y][g,t] for g in keys(ref[:gen])) for t in stages) )
+    @objective(model, Min, sum(sum(1 - model[:y][g,t] for g in keys(ref[:gen])) for t in stages)
+                                + sum(sum(1 - model[:z][d,t] for d in keys(ref[:load])) for t in stages) )
 
     #------------- Build and solve model----------------
     # buildInternalModel(model)
