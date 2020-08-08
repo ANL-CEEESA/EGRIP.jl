@@ -3,17 +3,16 @@ import numpy as np
 import json
 import csv
 
-# given the boundary lines and buses
+# ================ given the boundary lines and buses ================
 boundary_lines = [[107, 132], [103, 133], [13, 28]]
-network_section = {"1": [13, 103, 107], "2": [28, 132, 133]}
+network_section = {"S": [13, 103, 107], "N": [28, 132, 133]}
 
-# read data
-data_bus = pd.read_csv("WECC_Bus_all.csv", encoding="ISO-8859-1")
+
+# ================= read data line and transformer data and create bus pairs===============
 data_line = pd.read_csv("WECC_Line.csv", encoding="ISO-8859-1")
 data_trans = pd.read_csv("WECC_Trans.csv", encoding="ISO-8859-1")
 
 # construct a bus pairs
-num_bus = data_bus.shape[0]
 num_line = data_line.shape[0]
 num_trans = data_trans.shape[0]
 
@@ -40,6 +39,8 @@ for i in range(num_trans):
 # convert bus pairs to numpy array
 bus_pairs = np.array(bus_pairs)
 
+
+# ===================== begin sectionalization ====================
 # loop bus set in section data and compare with bus pair
 search_flag = 1
 from_bus_position = 0
@@ -95,5 +96,27 @@ while search_flag:
     loop_counter = loop_counter + 1
     print(bus_pairs.size)
 
+# save sectionlized network
 with open('network_section.json', 'w') as fp:
     json.dump(network_section, fp)
+
+
+# ======================= generate bus csv files with coordinates ======================
+data_bus = pd.read_csv("WECC_Bus_all.csv", encoding="ISO-8859-1")
+num_bus = data_bus.shape[0]
+data_bus_N = pd.DataFrame(columns=['BusNumber', 'BusName', 'Latitude', 'Longitude'])
+data_bus_S = pd.DataFrame(columns=['BusNumber', 'BusName', 'Latitude', 'Longitude'])
+
+for i in network_section["N"]:
+    # get the row the bus number of which is i
+    row = data_bus[data_bus["BusNumber"] == i]
+    data_bus_N = data_bus_N.append({'BusNumber': i, 'BusName': row['BusName'].iloc[0],
+                                    'Latitude': float(row['Latitude']), 'Longitude': float(row['Longitude'])}, ignore_index=True)
+for i in network_section["S"]:
+    # get the row the bus number of which is i
+    row = data_bus[data_bus["BusNumber"] == i]
+    data_bus_S = data_bus_S.append({'BusNumber': i, 'BusName': row['BusName'].iloc[0],
+                                    'Latitude': float(row['Latitude']), 'Longitude': float(row['Longitude'])}, ignore_index=True)
+
+data_bus_N.to_csv("WECC_Bus_N.csv.csv")
+data_bus_S.to_csv("WECC_Bus_S.csv.csv")
