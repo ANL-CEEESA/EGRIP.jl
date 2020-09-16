@@ -1,6 +1,7 @@
 module EGRIP
 
 include("restoration.jl")
+include("refine.jl")
 include("section.jl")
 include("startup.jl")
 include("flow.jl")
@@ -14,6 +15,7 @@ include("util.jl")
 
 export solve_restoration_full
 export solve_restoration_part
+export solve_refined_restoration
 export solve_section
 export solve_startup
 export load_network

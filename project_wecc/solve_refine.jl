@@ -22,24 +22,24 @@ using CSV
 # ref = load_network("WECC_BaseCase.raw", "psse")
 
 # # ------------ Interactive --------------
-dir_case_network = string("WECC_dataset/sec_N.json")
+# dir_case_network = string("WECC_dataset/sec_N.json")
+# dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
+# network_data_format = "json"
+# dir_case_result = "results_sec_N/"
+# t_final = 300
+# t_step = 50
+# gap = 0.25
+# solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+
+
+dir_case_network = string("WECC_dataset/sec_S.json")
 dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
 network_data_format = "json"
-dir_case_result = "results_sec_N/"
+dir_case_result = "results_sec_S/"
 t_final = 300
 t_step = 50
 gap = 0.25
 solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
-
-
-# dir_case_network = string("WECC_dataset/sec_S.json")
-# dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
-# network_data_format = "json"
-# dir_case_result = "results_sec_S/"
-# t_final = 300
-# t_step = 15
-# gap = 0.25
-# solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
 # # -------------- Command line --------------
 # dir_case_network = ARGS[1]

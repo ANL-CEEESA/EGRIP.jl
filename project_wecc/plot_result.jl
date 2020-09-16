@@ -19,11 +19,28 @@ label_list = ["W/O Renewable", "W Renewable: Sample 1000, Prob 0.05",
 
 
 # # ---------------- calculate total load ---------------------
-ref = load_network("WECC_BaseCase.raw", "psse")
+ref = load_network("WECC_dataset/sec_N.json", "json")
 total_load = sum(ref[:load][i]["pd"] for i in keys(ref[:load])) * ref[:baseMVA]
-
+println("  ")
+println("==================")
+println("total load is ", total_load)
+println("==================")
+println("  ")
+# ---------------- calculate gen and load ---------------------
+p_gen = Dict()
+for i in keys(ref[:gen])
+    p_gen[i] = ref[:gen][i]["pg"]
+    println("Generator Bus: ", ref[:gen][i]["gen_bus"], " Power: ", ref[:gen][i]["pg"])
+end
+sum(p_gen[k] for k in keys(p_gen))
+p_load = Dict()
+for i in keys(ref[:load])
+    p_load[i] = ref[:load][i]["pd"]
+    println("Load Bus: ", ref[:load][i]["load_bus"], " Power: ", ref[:load][i]["pd"])
+end
+sum(p_load[k] for k in keys(p_load))
 # # ---------------- read data ---------------------
-res_path = "results_sec_1_gap100"
+res_path = "results_sec_N"
 # res_path = "results_sec_2_gap100"
 # res_path = "results"
 
@@ -55,6 +72,8 @@ ax.yaxis.set_tick_params(labelsize=16)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
 PyPlot.savefig(string(res_path, "/", "res_1.png"))
+
+println("generation at each step is ", pg_step)
 
 
 # fig, ax = PyPlot.subplots(figsize=(8, 5))
