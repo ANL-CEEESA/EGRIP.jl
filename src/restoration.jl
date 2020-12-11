@@ -60,7 +60,10 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     stages = 1:nstage;
     # Load generation data
     Pcr, Tcr, Krp = load_gen(dir_case_blackstart, ref, time_step)
-
+    
+    println("cranking power", Pcr)
+    println("cranking time", Tcr)
+    println("ramp rate", Krp)
 
     #----------------- Load solver ---------------
     # JuMP 0.18
@@ -101,7 +104,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 #                                 + sum(sum( - model[:u][ref[:load][d]["load_bus"], t]*ref[:load][d]["pd"] for d in keys(ref[:load])) for t in stages) )
 #     @objective(model, Min, sum(sum( - model[:pg][g,t] for g in keys(ref[:gen])) for t in stages)
 #                                 + sum(sum( - model[:pl][d, t] for d in keys(ref[:load])) for t in stages) )
-    @objective(model, Min, sum(sum( - model[:pl][d, t] for d in keys(ref[:load])) for t in stages) )
+    @objective(model, Max, sum(sum( model[:pl][d, t] for d in keys(ref[:load])) for t in stages) + sum(sum( model[:pg][g, t] for g in keys(ref[:gen])) for t in stages) )
     
     #------------- Build and solve model----------------
     # buildInternalModel(model)

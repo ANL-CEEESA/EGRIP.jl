@@ -82,6 +82,7 @@ end
 Load generator data with respect to restoration
 """
 function load_gen(dir_case_blackstart, ref, time_step)
+    # time step is in section
     # Generation data will be further adjusted based on the time and resolution specifications
     bs_data = CSV.read(dir_case_blackstart)
 
@@ -94,15 +95,15 @@ function load_gen(dir_case_blackstart, ref, time_step)
         # cranking power: power needed for the unit to be normally functional, unit converted into pu
         Pcr[g] = bs_data[g,3] / ref[:baseMVA]
         # cranking time: time needed for the unit to be normally functional
-        Tcr[g] = bs_data[g,4]
+        Tcr[g] = bs_data[g,4]  # in second
         # ramping rate: the unit in BS data is MW/min and converted into pu/min
-        Krp[g] = bs_data[g,5] / ref[:baseMVA]
+        Krp[g] = bs_data[g,5] / ref[:baseMVA]   # originally in second/MW and now in second/pu
     end
 
     # Adjust generator data based on time step from minute to per time step
     for g in keys(ref[:gen])
         Tcr[g] = ceil(Tcr[g] / time_step) # cranking time: time needed for the unit to be normally functional
-        Krp[g] = Krp[g] * time_step # ramping rate
+        Krp[g] = Krp[g] * time_step # ramping rate in pu/each step
     end
 
     return Pcr, Tcr, Krp

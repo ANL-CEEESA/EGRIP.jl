@@ -14,24 +14,17 @@ using CSV
 # include("../src/EGRIP.jl")
 # using .EGRIP
 
-# # ------------ load manually sectionalized data from JSON --------------
-# # load data for restoration
-# network_section = Dict()
-# network_section = JSON.parsefile("WECC_dataset/network_section.json")
-# # load network data
-# ref = load_network("WECC_BaseCase.raw", "psse")
-
-# # ------------ Interactive --------------
+# # ------------ solve initial restoration: Northern part--------------
 dir_case_network = string("WECC_dataset/sec_N.json")
-dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
+dir_case_blackstart = "WECC_dataset/WECC_generator_specs.csv"
 network_data_format = "json"
 dir_case_result = "results_sec_N/"
-t_final = 300
-t_step = 50
+t_final = 600
+t_step = 200
 gap = 0.25
 solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
-
+# # ------------ solve initial restoration: Sorthern part--------------
 # dir_case_network = string("WECC_dataset/sec_S.json")
 # dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
 # network_data_format = "json"
@@ -40,12 +33,3 @@ solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstar
 # t_step = 15
 # gap = 0.25
 # solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
-
-# # -------------- Command line --------------
-# dir_case_network = ARGS[1]
-# dir_case_blackstart = ARGS[2]
-# dir_case_result = ARGS[3]
-# t_final = parse(Int64, ARGS[4])
-# t_step = parse(Int64, ARGS[5])
-# gap = parse(Float64, ARGS[6])
-# solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step, gap)

@@ -51,8 +51,8 @@ nstage = t_final/t_step;
 stages = 1:nstage;
 
 # solve the problem
-test_from = 3
-test_end = 3
+test_from = 1
+test_end = 1
 # plotting setup
 line_style = [(0,(3,5,1,5)), (0,(5,1)), (0,(5,5)), (0,(5,10)), (0,(1,1))]
 line_colors = ["b", "r", "m", "lime", "darkorange"]

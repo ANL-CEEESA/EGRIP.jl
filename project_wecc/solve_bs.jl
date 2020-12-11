@@ -14,26 +14,11 @@ using PowerModels
 # using .EGRIP
 
 # # ------------ Interactive --------------
-dir_case_network = "WECC_BaseCase.raw"
-# dir_case_network = "WECC_WIND10.raw"
-
-dir_case_blackstart = "WECC_dataset/WECC_Bus_gen.csv"
+dir_case_network = "WECC_dataset/WECC_noHVDC.raw"
+dir_case_blackstart = "WECC_dataset/WECC_generator_specs.csv"
 network_data_format = "psse"
 dir_case_result = "results/"
-t_final = 500
-t_step = 100
-gap = 0.20
-
-# ref = load_network(dir_case_network, network_data_format)
-
+t_final = 300
+t_step = 50
+gap = 0.5
 ref, model = solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
-
-
-# # -------------- Command line --------------
-# dir_case_network = ARGS[1]
-# dir_case_blackstart = ARGS[2]
-# dir_case_result = ARGS[3]
-# t_final = parse(Int64, ARGS[4])
-# t_step = parse(Int64, ARGS[5])
-# gap = parse(Float64, ARGS[6])
-# solve_restoration(dir_case_network, dir_case_blackstart, dir_case_result, t_final, t_step, gap)

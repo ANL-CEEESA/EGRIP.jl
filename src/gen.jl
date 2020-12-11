@@ -21,7 +21,7 @@ function def_var_gen(model, ref, stages)
     @variable(model, pg[keys(ref[:gen]),stages])
     @variable(model, qg[keys(ref[:gen]),stages])
 
-    # indicator of cranking instant
+    # indicator of starting instant x_gt in the paper
     @variable(model, ys[keys(ref[:gen]),stages], Bin);
     # indicator of cranking
     @variable(model, yc[keys(ref[:gen]),stages], Bin);
@@ -95,7 +95,7 @@ Generator cranking constraint
 \begin{align*}
 & pg^{\min}_{g} \leq pg_{g,t} \leq pg^{\max}_{g}\\
 & \text{ if }t > Tcr_{g}+1\\
-& \quad\quad -Pcr_{g}(y_{g,t}-y_{g,Tcr_{g}}) \leq pg_{g,t} \leq pg^{\max}_{g}y_{g,t-Tcr_{g}-1}-Pcr_{g}(y_{g,t} - y_{g,t-Tcr_{g}}) \\
+& \quad\quad -Pcr_{g}(y_{g,t}-y_{g,t-Tcr_{g}}) \leq pg_{g,t} \leq pg^{\max}_{g}y_{g,t-Tcr_{g}-1}-Pcr_{g}(y_{g,t} - y_{g,t-Tcr_{g}}) \\
 & \text{ elseif }t \leq Tcr_{g}\\
 & \quad\quad pg_{g,t} = -Pcr_{g}y_{g,t}\\
 & \text{else }\\
@@ -178,7 +178,7 @@ function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
     for t in stages
         for g in keys(ref[:gen])
             t_terminal = min(stages[end], t + Tcr[g] - 1)
-            @constraint(model, sum(model[:yc][g,i] for i in t:t_terminal) >= model[:ys][g,t] * min(stages[end] - t, Tcr[g] - 1))
+            @constraint(model, sum(model[:yc][g,i] for i in t:t_terminal) >= model[:ys][g,t] * min(stages[end] - t, Tcr[g]))
         end
     end
 
@@ -186,17 +186,40 @@ function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
     for t in stages
         for g in keys(ref[:gen])
             t_terminal = min(stages[end], t + Tcr[g] + Trp[g] - 1)
-            @constraint(model, sum(model[:yc][g,i] for i in t:t_terminal) >= model[:ys][g,t] * min(stages[end] - t, Tcr[g] + Trp[g] - 1))
+            t_start = t + Tcr[g] - 1
+            @constraint(model, sum(model[:yr][g,i] for i in t_start:t_terminal) >= model[:ys][g,t] * min(stages[end] - t, Trp[g]))
+        end
+    end
+    
+#     # once ramping is finished, generator should be at max
+    for t in stages
+        for g in keys(ref[:gen])
+            t_terminal = stages[end]
+            t_start = t + Tcr[g]+ Trp[g] - 1
+            @constraint(model, sum(model[:yd][g,i] for i in t_start:t_terminal) >= model[:ys][g,t] * (stages[end] - (t + Tcr[g]+ Trp[g] - 1)))
         end
     end
 
     # total generation at each time t
     for t in stages
-        @constraint(model, model[:pg_total][t] == sum((model[:yc][g,t] * (-Pcr[g])
-                        + sum(model[:yr][g,i] * Krp[g] for i in max(1,t-Tcr[g]+1):t)
-                        + ref[:gen][g]["pmax"] * model[:yd][g,t]) for g in keys(ref[:gen])))
+        @constraint(model, model[:pg_total][t] == sum((model[:yc][g,t] * (-Pcr[g]) + sum(model[:yr][g,i] * Krp[g] for i in 1: t) for g in keys(ref[:gen]))))
     end
-
+    
+    # in each stage the generator can only have one status
+    for t in stages
+        for g in keys(ref[:gen])
+            @constraint(model, model[:yr][g,t] + model[:yc][g,t] + model[:yd][g,t] <= 1)
+        end
+    end
+    # when each generator arrive at the Pmax, it stays
+    for t in stages
+        if t > 1
+            for g in keys(ref[:gen])
+                @constraint(model, model[:yd][g,t] >= model[:yd][g,t-1])
+            end
+        end
+    end
+    
     # return variables
-    return model
+    return model, Trp
 end

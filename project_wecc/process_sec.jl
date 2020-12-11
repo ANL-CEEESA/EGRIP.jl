@@ -19,7 +19,7 @@ using CSV
 network_section = Dict()
 network_section = JSON.parsefile("WECC_dataset/network_section.json")
 # load network data
-ref = load_network("WECC_BaseCase_modified.raw", "psse")
+ref = load_network("WECC_dataset/WECC_noHVDC.raw", "psse")
 
 # =================== processing ref data structure ===================
 # we need to split ref data based on sectionalization
@@ -146,11 +146,3 @@ open(string("WECC_dataset/", a[2], ".json"), "w") do f
     JSON.print(f, section_ref["S"])
 end
 
-
-# =================== testing: loading saved json data ===================
-dict_1 = Dict()
-dict_2 = Dict()
-dict_1 = JSON.parsefile(string("WECC_dataset/", a[1], ".json"))
-dict_2 = JSON.parsefile(string("WECC_dataset/", a[2], ".json"))
-dict_1 = data_process(dict_1)
-dict_2 = data_process(dict_2)
