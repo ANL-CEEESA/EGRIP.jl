@@ -48,7 +48,7 @@ Load pickup constraint
 ```
 """
 function form_load_logic(model, ref, stages)
-
+    println("")
     println("formulating load logic constraints")
     pl = model[:pl]
     ql = model[:ql]
@@ -72,11 +72,11 @@ function form_load_logic(model, ref, stages)
                 end
             end
 
-            # fix power factors
-            if abs(ref[:load][l]["pd"]) >= exp(-8)
-                @constraint(model, ql[l,t] == pl[l,t] * ref[:load][l]["qd"] / ref[:load][l]["pd"])
-                continue
-            end
+#             # fix power factors
+#             if abs(ref[:load][l]["pd"]) >= exp(-8)
+#                 @constraint(model, ql[l,t] == pl[l,t] * ref[:load][l]["qd"] / ref[:load][l]["pd"])
+#                 continue
+#             end
 
             # reactive power load
             if ref[:load][l]["qd"] >= 0

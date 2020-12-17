@@ -21,7 +21,7 @@ using DataFrames
 using CSV
 using JSON
 using PowerModels
-
+using DataStructures
 
 @doc raw"""
 Solve full restoration problem (The restoration problem could be partial or full restorations)
@@ -42,7 +42,7 @@ Solve full restoration problem (The restoration problem could be partial or full
     - generator status and output constraint
     - load pick-up constraint
 """
-function solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+function solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap, line_damage=nothing)
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -60,10 +60,6 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     stages = 1:nstage;
     # Load generation data
     Pcr, Tcr, Krp = load_gen(dir_case_blackstart, ref, time_step)
-    
-    println("cranking power", Pcr)
-    println("cranking time", Tcr)
-    println("ramp rate", Krp)
 
     #----------------- Load solver ---------------
     # JuMP 0.18
@@ -96,15 +92,30 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     # load control constraint
     model = form_load_logic(model, ref, stages)
-
+    
+#     # enforce the damaged branches to be off during the whole restoration process
+    if line_damage == nothing
+        println("No line damage data")
+    else
+        model = enforce_damage_branch(model, ref, stages, line_damage)
+    end
 
 
     #------------------- Define objectives--------------------
-#     @objective(model, Min, sum(sum( - model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages)
-#                                 + sum(sum( - model[:u][ref[:load][d]["load_bus"], t]*ref[:load][d]["pd"] for d in keys(ref[:load])) for t in stages) )
-#     @objective(model, Min, sum(sum( - model[:pg][g,t] for g in keys(ref[:gen])) for t in stages)
-#                                 + sum(sum( - model[:pl][d, t] for d in keys(ref[:load])) for t in stages) )
-    @objective(model, Max, sum(sum( model[:pl][d, t] for d in keys(ref[:load])) for t in stages) + sum(sum( model[:pg][g, t] for g in keys(ref[:gen])) for t in stages) )
+    ## (1) maximize the generator status
+#     @objective(model, Max, sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
+    
+    ## (2) maximize the total load
+#     @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages))
+    
+    ## (3) maximize the total generator output
+#     @objective(model, Max, sum(sum(model[:pg][g, t] for g in keys(ref[:gen])) for t in stages))
+    
+    ## (4) maximize both total load and generator output
+#     @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages) + sum(sum(model[:pg][g, t] for g in keys(ref[:gen])) for t in stages))
+    
+     ## (5) maximize both total load and generator status
+    @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages) + sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
     
     #------------- Build and solve model----------------
     # buildInternalModel(model)
@@ -151,11 +162,14 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     println("")
     println("Bus energization: ")
+    bus_energization = OrderedDict()
     for t in stages
+        bus_energization[t] = []
         print("stage ", t, ": ")
         for b in keys(ref[:bus])
             if (abs(value(model[:u][b,t]) - 1) < 1e-6 && t == 1) || (t > 1 && abs(value(model[:u][b,t-1]) + value(model[:u][b,t]) - 1) < 1e-6)
                 print(b, " ")
+                push!(bus_energization[t], b)
             end
         end
         println("")
@@ -163,7 +177,14 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     # #-----------Build a dictionary to store the changing point---------------
     CP = Dict();
-
+    
+    # sort dict
+    ordered_load = sort(ref[:load]) # order the dict based on the key 
+    ordered_gen = sort(ref[:gen]) # order the dict based on the key
+    ordered_bus = sort(ref[:bus]) # order the dict based on the key
+    ordered_branch = sort(ref[:branch]) # order the dict based on the key
+    ordered_arcs = sort(ref[:arcs])
+    
     # Write branch energization solution
     CP[:x] = Dict();
     resultfile = open(string(dir_case_result, "res_x.csv"), "w")
@@ -176,7 +197,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, t)
         end
     end
-    for (i, branch) in ref[:branch]
+    for (i, branch) in ordered_branch
             # if branch["b_fr"] == 0
                 print(resultfile, i)
                 print(resultfile, ", ")
@@ -213,7 +234,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, t)
         end
     end
-    for (i, gen) in ref[:gen]
+    for (i, gen) in ordered_gen
                 print(resultfile, i)
                 print(resultfile, ", ")
                 print(resultfile, gen["gen_bus"])
@@ -246,7 +267,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, t)
         end
     end
-    for (i, bus) in ref[:bus]
+    for (i, bus) in ordered_bus
                 print(resultfile, i)
                 print(resultfile, ", ")
                 for t in stages
@@ -268,7 +289,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     # Write generator active power dispatch solution
     resultfile = open(string(dir_case_result, "res_pg.csv"), "w")
-    print(resultfile, "Gen Index, Gen Bus,")
+    print(resultfile, "Gen Index, Gen Bus, Upper Bound,")
     for t in stages
         if t<nstage
             print(resultfile, t)
@@ -277,17 +298,19 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, t)
         end
     end
-    for (i, gen) in ref[:gen]
+    for (i, gen) in ordered_gen
                 print(resultfile, i)
                 print(resultfile, ", ")
                 print(resultfile, gen["gen_bus"])
                 print(resultfile, ", ")
+                print(resultfile, gen["pmax"]*ref[:baseMVA])
+                print(resultfile, ", ")
                 for t in stages
                     if t<nstage
-                        print(resultfile, round(value(model[:pg][i,t])*100))
+                        print(resultfile, round(value(model[:pg][i,t])*ref[:baseMVA]))
                         print(resultfile, ",")
                     else
-                        print(resultfile, round(value(model[:pg][i,t])*100))
+                        print(resultfile, round(value(model[:pg][i,t])*ref[:baseMVA]))
                     end
                 end
             println(resultfile, " ")
@@ -296,7 +319,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     # Write generator rective power dispatch solution
     resultfile = open(string(dir_case_result, "res_qg.csv"), "w")
-    print(resultfile, "Gen Index, Gen Bus,")
+    print(resultfile, "Gen Index, Gen Bus, Upper Bound,")
     for t in stages
         if t<nstage
             print(resultfile, t)
@@ -305,17 +328,19 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, t)
         end
     end
-    for (i, gen) in ref[:gen]
+    for (i, gen) in ordered_gen
                 print(resultfile, i)
                 print(resultfile, ", ")
                 print(resultfile, gen["gen_bus"])
                 print(resultfile, ", ")
+                print(resultfile, gen["qmax"]*ref[:baseMVA])
+                print(resultfile, ", ")
                 for t in stages
                     if t<nstage
-                        print(resultfile, round(value(model[:qg][i,t])*100))
+                        print(resultfile, round(value(model[:qg][i,t])*ref[:baseMVA]))
                         print(resultfile, ",")
                     else
-                        print(resultfile, round(value(model[:qg][i,t])*100))
+                        print(resultfile, round(value(model[:qg][i,t])*ref[:baseMVA]))
                     end
                 end
             println(resultfile, " ")
@@ -324,7 +349,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     # Write load active power dispatch solution
     resultfile = open(string(dir_case_result, "res_pl.csv"), "w")
-    print(resultfile, "Load Index, Bus Index, ")
+    print(resultfile, "Load Index, Bus Index, Nominal Value,")
     for t in stages
         if t<nstage
             print(resultfile, t)
@@ -333,17 +358,19 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, t)
         end
     end
-    for (i, load) in ref[:load]
+    for (i, load) in ordered_load
                 print(resultfile, i)
                 print(resultfile, ", ")
                 print(resultfile, load["load_bus"])
                 print(resultfile, ", ")
+                print(resultfile, load["pd"]*ref[:baseMVA])
+                print(resultfile, ", ")
                 for t in stages
                     if t<nstage
-                        print(resultfile, round(value(model[:pl][i,t])*100))
+                        print(resultfile, round(value(model[:pl][i,t])*ref[:baseMVA]))
                         print(resultfile, ",")
                     else
-                        print(resultfile, round(value(model[:pl][i,t])*100))
+                        print(resultfile, round(value(model[:pl][i,t])*ref[:baseMVA]))
                     end
                 end
             println(resultfile, " ")
@@ -352,7 +379,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     # Write load rective power dispatch solution
     resultfile = open(string(dir_case_result, "res_ql.csv"), "w")
-    print(resultfile, "Load Index, Bus Index, ")
+    print(resultfile, "Load Index, Bus Index, Nominal Value,")
     for t in stages
         if t<nstage
             print(resultfile, t)
@@ -361,23 +388,102 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, t)
         end
     end
-    for (i, load) in ref[:load]
+    for (i, load) in ordered_load
                 print(resultfile, i)
                 print(resultfile, ", ")
                 print(resultfile, load["load_bus"])
                 print(resultfile, ", ")
+                print(resultfile, load["qd"]*ref[:baseMVA])
+                print(resultfile, ", ")
                 for t in stages
                     if t<nstage
-                        print(resultfile, round(value(model[:ql][i,t])*100))
+                        print(resultfile, round(value(model[:ql][i,t])*ref[:baseMVA]))
                         print(resultfile, ",")
                     else
-                        print(resultfile, round(value(model[:ql][i,t])*100))
+                        print(resultfile, round(value(model[:ql][i,t])*ref[:baseMVA]))
                     end
                 end
             println(resultfile, " ")
     end
     close(resultfile)
-
+    
+    # Write bus voltage solution
+    resultfile = open(string(dir_case_result, "res_vb.csv"), "w")
+    print(resultfile, "Bus Index, ")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, bus) in ordered_bus
+                print(resultfile, i)
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, value(model[:vb][i,t]))
+                        print(resultfile, ",")
+                    else
+                        print(resultfile, value(model[:vb][i,t]))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+    
+    # Write active power flow
+    resultfile = open(string(dir_case_result, "res_p.csv"), "w")
+    print(resultfile, "Branch Index, From/To, To/From, ")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for i in ordered_arcs
+                print(resultfile, i)
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, round(value(model[:p][i,t])*ref[:baseMVA]))
+                        print(resultfile, ",")
+                    else
+                        print(resultfile, round(value(model[:p][i,t])*ref[:baseMVA]))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+    
+    # Write reactive power flow
+    resultfile = open(string(dir_case_result, "res_q.csv"), "w")
+    print(resultfile, "Branch Index, From/To, To/From, ")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for i in ordered_arcs
+                print(resultfile, i)
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, round(value(model[:q][i,t])*ref[:baseMVA]))
+                        print(resultfile, ",")
+                    else
+                        print(resultfile, round(value(model[:q][i,t])*ref[:baseMVA]))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
 
     # #---------------- Interpolate current plan to time series (one-minute based) data --------------------
     # Interpolate generator energization solution to time series (one-minute based) data
@@ -499,7 +605,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     end
     close(resultfile)
 
-    return ref, model
+    return ref, model, bus_energization
 end
 
 

@@ -52,29 +52,6 @@ function load_network(dir_case_network, network_data_format)
         println("un-supported network data format")
     end
 
-    # check data
-    println("")
-    println("bus")
-    println(keys(ref[:bus]))
-
-    println("bus arcs")
-    println(keys(ref[:bus_arcs]))
-
-    println("bus gen")
-    println(keys(ref[:bus_gens]))
-
-    println("bus pairs")
-    println(keys(ref[:buspairs]))
-
-    println("gen")
-    println(keys(ref[:gen]))
-
-    println("number of arcs")
-    println(length(ref[:arcs]))
-
-    println("arcs")
-    println(ref[:arcs])
-
     return ref
 end
 
@@ -95,9 +72,9 @@ function load_gen(dir_case_blackstart, ref, time_step)
         # cranking power: power needed for the unit to be normally functional, unit converted into pu
         Pcr[g] = bs_data[g,3] / ref[:baseMVA]
         # cranking time: time needed for the unit to be normally functional
-        Tcr[g] = bs_data[g,4]  # in second
+        Tcr[g] = bs_data[g,4]  # in minutes
         # ramping rate: the unit in BS data is MW/min and converted into pu/min
-        Krp[g] = bs_data[g,5] / ref[:baseMVA]   # originally in second/MW and now in second/pu
+        Krp[g] = bs_data[g,5] / ref[:baseMVA]   # originally in minutes/MW and now in minutes/pu
     end
 
     # Adjust generator data based on time step from minute to per time step

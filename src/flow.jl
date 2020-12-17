@@ -17,8 +17,8 @@ Define flow variable
 function def_var_flow(model, ref, stages)
     @variable(model, x[keys(ref[:buspairs]),stages], Bin); # status of line at time t
     @variable(model, u[keys(ref[:bus]),stages], Bin); # status of bus at time t
-    @variable(model, ref[:bus][i]["vmin"] <= v[i in keys(ref[:bus]),stages]
-        <= ref[:bus][i]["vmax"]); # bus voltage with upper- and lower bounds
+    # synthetic voltage with upper- and lower bounds to collect the real voltage variables used in flow and bus
+    @variable(model, ref[:bus][i]["vmin"] <= v[i in keys(ref[:bus]),stages] <= ref[:bus][i]["vmax"]); 
     @variable(model, a[keys(ref[:bus]),stages]); # bus angle
 
     # slack variables of voltage and angle on flow equations
@@ -27,9 +27,9 @@ function def_var_flow(model, ref, stages)
         i,j = k
         push!(bp2, (j,i))
     end
-    @variable(model, vl[bp2,stages]) # V_i^j
-    @variable(model, al[bp2,stages]) # theta_i^j
-    @variable(model, vb[keys(ref[:bus]),stages])
+    @variable(model, vl[bp2,stages]) # V_i^j: line i-j voltage at terminal i
+    @variable(model, al[bp2,stages]) # theta_i^j: angle varaibles in the power flow
+    @variable(model, vb[keys(ref[:bus]),stages]) # V_i: bus i voltage
 
     # line flow with the index rule (branch, from_bus, to_bus)
     # Note that we can only measure the line flow at the bus terminal
@@ -115,11 +115,7 @@ function form_nodal(model, ref, stages)
 
     println("")
     println("formulating nodal constraints")
-
     for (i,j) in keys(ref[:buspairs])
-
-        println("creating slack variables for nodal constraint for bus pair: ", i, ", ", j)
-
         for t in stages
             # voltage constraints
             # voltage constraints are only activated if the associated line is energized
@@ -146,16 +142,15 @@ function form_nodal(model, ref, stages)
                 @constraint(model, x[(i,j), t] >= x[(i,j), t-1])
             end
 
-            # bus should be energized before the connected genertor being on
-            @constraint(model, u[i,t] >= x[(i,j),t])
-            @constraint(model, u[j,t] >= x[(i,j),t])
+            # line energization rules
+            @constraint(model, u[i,t] + u[j,t] >= x[(i,j),t])     # original: u[i,t] >= x[(i,j),t]
+#             @constraint(model, u[j,t] >= x[(i,j),t])   # original: u[j,t] >= x[(i, j),t]
 
         end
     end
-
+    
     # nodal (bus) constraints
     for (i, bus) in ref[:bus]  # loop its keys and entries
-        println("formulating nodal constraint for bus ", i)
         for t in stages
             bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
@@ -165,11 +160,17 @@ function form_nodal(model, ref, stages)
             @constraint(model, vb[i,t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-u[i,t]))
 
             # u_i >= y_i & u_{i,t} >= u_{i,t-1}
-            for g in ref[:bus_gens][i]
-                @constraint(model, u[i,t] == y[g,t])  # bus on == generator on
+#             for g in ref[:bus_gens][i]
+#                 @constraint(model, u[i,t] == y[g,t])  # bus on == generator on
+#             end
+            if size(ref[:bus_gens][i],1) > 0
+                g = ref[:bus_gens][i][1]
+                @constraint(model, u[i,t] == y[g,t])
             end
+            
+            # on-line buses cannot be shut down
             if t > 1
-                @constraint(model, u[i,t] >= u[i,t-1]) # on-line buses cannot be shut down
+                @constraint(model, u[i,t] >= u[i,t-1])
             end
 
             # Bus KCL
@@ -182,8 +183,57 @@ function form_nodal(model, ref, stages)
                 sum(qg[g,t] for g in ref[:bus_gens][i]) -
                 sum(ql[l,t] for l in ref[:bus_loads][i]) +
                 sum(shunt["bs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
+            
+            # bus energization rule
+            # for non-generator bus, there needs to be at least one connected energized line before this bus can be energyized
+#             if size(ref[:bus_gens][i],1) == 0
+#                 @constraint(model, sum(x[(ref[:branch][r[1]]["f_bus"],ref[:branch][r[1]]["t_bus"]), t] for r in ref[:bus_arcs][i]) >= u[i,t])
+#             end 
+            if t > 1
+                 if size(ref[:bus_gens][i],1) == 0
+                    neighbor_buses = []
+                    # find all neighboring buses
+                    for r in ref[:bus_arcs][i]
+                        if ref[:branch][r[1]]["f_bus"] != i
+                            push!(neighbor_buses, ref[:branch][r[1]]["f_bus"])
+                        end
+                        if ref[:branch][r[1]]["t_bus"] != i
+                            push!(neighbor_buses, ref[:branch][r[1]]["t_bus"])
+                        end
+                    end 
+                    # add constraints
+                    @constraint(model, sum(u[k,t-1] for k in neighbor_buses) >= u[i,t])
+                end 
+            end
+            
+        end
+        
+        # define the initial status of non-generator bus
+        if size(ref[:bus_gens][i],1) == 0
+                @constraint(model, u[i,1] == 0)
+        end 
+        
+    end
+    
+    
+    
+    
+    return model
+end
+
+
+function enforce_damage_branch(model, ref, stages, line_damage)
+    
+    x = model[:x]
+    
+    println("")
+    println("formulating branch damage constraints")
+    for t in stages
+        for br in line_damage
+            @constraint(model, x[(br[1],br[2]), t] == 0)
         end
     end
+    
     return model
 end
 
@@ -206,11 +256,10 @@ function form_branch(model, ref, stages)
     u = model[:u]
     p = model[:p]
     q = model[:q]
-
+    
+    println("")
+    println("formulating branch constraints")
     for (i, branch) in ref[:branch]
-
-        println("formulating branch constraint for branch ", i)
-
         for t in stages
             # create indices for variables
             f_idx = (i, branch["f_bus"], branch["t_bus"])
