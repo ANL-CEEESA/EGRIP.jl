@@ -24,7 +24,14 @@ Solve generator start-up problem
 - Constraints:
     -
 """
-function solve_startup(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap, wind)
+function solve_startup(dir_case_network,
+    network_data_format,
+    dir_case_blackstart,
+    dir_case_result,
+    t_final, t_step, gap,
+    wind_activation,
+    wind_data,
+    violation_probability=nothing)
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -60,13 +67,18 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
 
     # add wind into ref
     # #TODO: load wind data from csv or raw
-    # #TODO: wind power distribution; currently Guassian is used
-    # ref[:wind] = Dict(
-    # 4 => Dict("bus"=>4, "pw_mean"=>4, "pw_dev"=>1),
-    # 14 => Dict("bus"=>14, "pw_mean"=>5, "pw_dev"=>1.2),
-    # 24 => Dict("bus"=>24, "pw_mean"=>6, "pw_dev"=>1.5),
-    # )
-    if wind["activation"] == 1
+
+    if wind_activation == 1
+        # if wind_activate = 1, we generate wind data using probabilistic distribution
+        # #TODO: wind power distribution; currently Guassian is used
+        # ref[:wind] = Dict(
+        # 4 => Dict("bus"=>4, "pw_mean"=>4, "pw_dev"=>1),
+        # 14 => Dict("bus"=>14, "pw_mean"=>5, "pw_dev"=>1.2),
+        # 24 => Dict("bus"=>24, "pw_mean"=>6, "pw_dev"=>1.5),
+        # )
+        model = def_var_wind(model, ref, stages)
+    elseif wind_activation == 2
+        # if wind_activate = 2, we generate wind data using probabilistic distribution
         model = def_var_wind(model, ref, stages)
     end
 
@@ -79,12 +91,19 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
     model = form_load_logic_1(model, ref, stages)
 
     # wind power dispatch chance constraint
-    if wind["activation"] == 1
-        model, pw_sp = form_wind_saa(model, ref, stages, wind["sample_number"], wind["violation_probability"])
+    if wind_activation == 1
+        model, pw_sp = form_wind_saa_1(model, ref, stages, wind_data["sample_number"], wind_data["violation_probability"])
+    elseif wind_activation == 2
+        model, pw_sp = form_wind_saa_2(model, ref, stages, wind_data, violation_probability)
     end
 
     # generator capacity is greater than load for all time
-    if wind["activation"] == 1
+    if wind_activation == 1
+        println("Generation start-up with wind power")
+        for t in stages
+            @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
+        end
+    elseif wind_activation == 2
         println("Generation start-up with wind power")
         for t in stages
             @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
@@ -129,7 +148,7 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
 
     # #----------- Write generation data ----------------------
     CP = Dict();
-    
+
     ## Build a dictionary to store the changing point
     CP[:ys] = Dict();
     resultfile = open(string(dir_case_result, "res_ys.csv"), "w")
@@ -189,7 +208,7 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
             println(resultfile, " ")
     end
     close(resultfile)
-    
+
     resultfile = open(string(dir_case_result, "res_yr.csv"), "w")
     print(resultfile, "Gen Index, Gen Bus,")
     for t in stages
@@ -216,7 +235,7 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
             println(resultfile, " ")
     end
     close(resultfile)
-    
+
     resultfile = open(string(dir_case_result, "res_yd.csv"), "w")
     print(resultfile, "Gen Index, Gen Bus,")
     for t in stages
@@ -243,8 +262,8 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
             println(resultfile, " ")
     end
     close(resultfile)
-    
-    
+
+
      # #----------- Write load data ----------------------
     resultfile = open(string(dir_case_result, "res_zs.csv"), "w")
     print(resultfile, "Load Index, Bus Index, ")
@@ -272,7 +291,7 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
             println(resultfile, " ")
     end
     close(resultfile)
-    
+
     resultfile = open(string(dir_case_result, "res_z.csv"), "w")
     print(resultfile, "Load Index, Bus Index, ")
     for t in stages
@@ -299,7 +318,7 @@ function solve_startup(dir_case_network, network_data_format, dir_case_blackstar
             println(resultfile, " ")
     end
     close(resultfile)
-    
+
     # #---------------- Interpolate current plan to time series (one-minute based) data --------------------
     # Interpolate generator energization solution to time series (one-minute based) data
     resultfile = open(string(dir_case_result, "Interpol_ys.csv"), "w")
