@@ -1,14 +1,12 @@
 # ----------------- Load modules from registered package----------------
-using LinearAlgebra
-using JuMP
-using CPLEX
-# using LightGraphs
-# using LightGraphsFlows
-# using Gurobi
-using DataFrames
-using CSV
-using JSON
-using PowerModels
+# using LinearAlgebra
+# using JuMP
+# # using CPLEX
+# # using Gurobi
+# using DataFrames
+# using CSV
+# using JSON
+# using PowerModels
 
 @doc raw"""
 Solve generator start-up problem
@@ -78,7 +76,7 @@ function solve_startup(dir_case_network,
         # )
         model = def_var_wind(model, ref, stages)
     elseif wind_activation == 2
-        # if wind_activate = 2, we generate wind data using probabilistic distribution
+        # if wind_activate = 2, we use given wind data
         model = def_var_wind(model, ref, stages)
     end
 

@@ -37,6 +37,7 @@ using JuMP
 using JSON
 using CSV
 using JuMP
+using DataFrames
 # Or we use EGRIP as a module.
 # include("../src/EGRIP.jl")
 # using .EGRIP
@@ -64,7 +65,7 @@ label_list = ["W/O Renewable", "W Renewable: Prob 0.05",
 fig_name = "fig_gen_startup_real_data.png"
 
 # load real wind power data
-wind_data = CSV.read("../ERCOT_wind/wind_power.csv")
+wind_data = CSV.read("../ERCOT_wind/wind_power.csv", DataFrame)
 pw_sp = Dict()
 n_stages = length(stages)
 n_wind_data = size(wind_data, 1)

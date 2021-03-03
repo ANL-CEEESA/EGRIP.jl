@@ -1,14 +1,12 @@
 # ----------------- Load modules from registered package----------------
-using LinearAlgebra
-using JuMP
-using CPLEX
-# using LightGraphs
-# using LightGraphsFlows
-# using Gurobi
-using DataFrames
-using CSV
-using JSON
-using PowerModels
+# using LinearAlgebra
+# using JuMP
+# # using CPLEX
+# # using Gurobi
+# using DataFrames
+# using CSV
+# using JSON
+# using PowerModels
 
 @doc raw"""
 Define generator variables
@@ -104,10 +102,10 @@ Generator cranking constraint
 ```
 """
 function form_gen_cranking(model, ref, stages, Pcr, Tcr)
-    
+
     println("")
     println("formulating generator cranking constraint")
-    
+
     for t in stages
         for g in keys(ref[:gen])
             if t > Tcr[g] + 1
@@ -146,7 +144,7 @@ function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
     for g in keys(ref[:gen])
         Trp[g] = ceil( (ref[:gen][g]["pmax"] + Pcr[g]) / Krp[g])
     end
-    
+
     println("")
     println("formulating black-start constraints")
 
@@ -195,7 +193,7 @@ function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
             @constraint(model, sum(model[:yr][g,i] for i in t_start:t_terminal) >= model[:ys][g,t] * min(stages[end] - t, Trp[g]))
         end
     end
-    
+
 #     # once ramping is finished, generator should be at max
     for t in stages
         for g in keys(ref[:gen])
@@ -209,7 +207,7 @@ function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
     for t in stages
         @constraint(model, model[:pg_total][t] == sum((model[:yc][g,t] * (-Pcr[g]) + sum(model[:yr][g,i] * Krp[g] for i in 1: t) for g in keys(ref[:gen]))))
     end
-    
+
     # in each stage the generator can only have one status
     for t in stages
         for g in keys(ref[:gen])
@@ -224,7 +222,7 @@ function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
             end
         end
     end
-    
+
     # return variables
     return model, Trp
 end

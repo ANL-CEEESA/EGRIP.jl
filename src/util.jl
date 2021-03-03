@@ -1,14 +1,12 @@
 # ----------------- Load modules from registered package----------------
-using LinearAlgebra
-using JuMP
-using CPLEX
-# using LightGraphs
-# using LightGraphsFlows
-# using Gurobi
-using DataFrames
-using CSV
-using JSON
-using PowerModels
+# using LinearAlgebra
+# using JuMP
+# # using CPLEX
+# # using Gurobi
+# using DataFrames
+# using CSV
+# using JSON
+# using PowerModels
 
 @doc raw"""
 Load network data
@@ -61,7 +59,7 @@ Load generator data with respect to restoration
 function load_gen(dir_case_blackstart, ref, time_step)
     # time step is in section
     # Generation data will be further adjusted based on the time and resolution specifications
-    bs_data = CSV.read(dir_case_blackstart)
+    bs_data = CSV.read(dir_case_blackstart, DataFrame)
 
     # Define dictionary
     Pcr = Dict()

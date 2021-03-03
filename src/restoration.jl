@@ -11,17 +11,15 @@
 
 
 # ----------------- Load modules from registered package----------------
-using LinearAlgebra
-using JuMP
-using CPLEX
-# using LightGraphs
-# using LightGraphsFlows
-# using Gurobi
-using DataFrames
-using CSV
-using JSON
-using PowerModels
-using DataStructures
+# using LinearAlgebra
+# using JuMP
+# # using CPLEX
+# # using Gurobi
+# using DataFrames
+# using CSV
+# using JSON
+# using PowerModels
+# using DataStructures
 
 @doc raw"""
 Solve full restoration problem (The restoration problem could be partial or full restorations)
@@ -92,7 +90,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     # load control constraint
     model = form_load_logic(model, ref, stages)
-    
+
 #     # enforce the damaged branches to be off during the whole restoration process
     if line_damage == nothing
         println("No line damage data")
@@ -104,19 +102,19 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     #------------------- Define objectives--------------------
     ## (1) maximize the generator status
 #     @objective(model, Max, sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
-    
+
     ## (2) maximize the total load
 #     @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages))
-    
+
     ## (3) maximize the total generator output
 #     @objective(model, Max, sum(sum(model[:pg][g, t] for g in keys(ref[:gen])) for t in stages))
-    
+
     ## (4) maximize both total load and generator output
 #     @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages) + sum(sum(model[:pg][g, t] for g in keys(ref[:gen])) for t in stages))
-    
+
      ## (5) maximize both total load and generator status
     @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages) + sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
-    
+
     #------------- Build and solve model----------------
     # buildInternalModel(model)
     # m = model.internalModel.inner
@@ -177,14 +175,14 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
 
     # #-----------Build a dictionary to store the changing point---------------
     CP = Dict();
-    
+
     # sort dict
-    ordered_load = sort(ref[:load]) # order the dict based on the key 
-    ordered_gen = sort(ref[:gen]) # order the dict based on the key
-    ordered_bus = sort(ref[:bus]) # order the dict based on the key
-    ordered_branch = sort(ref[:branch]) # order the dict based on the key
-    ordered_arcs = sort(ref[:arcs])
-    
+    ordered_load = sort!(OrderedDict(ref[:load])) # order the dict based on the key
+    ordered_gen = sort!(OrderedDict(ref[:gen])) # order the dict based on the key
+    ordered_bus = sort!(OrderedDict(ref[:bus])) # order the dict based on the key
+    ordered_branch = sort!(OrderedDict(ref[:branch])) # order the dict based on the key
+    ordered_arcs = sort!(OrderedDict(ref[:arcs]))
+
     # Write branch energization solution
     CP[:x] = Dict();
     resultfile = open(string(dir_case_result, "res_x.csv"), "w")
@@ -406,7 +404,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, " ")
     end
     close(resultfile)
-    
+
     # Write bus voltage solution
     resultfile = open(string(dir_case_result, "res_vb.csv"), "w")
     print(resultfile, "Bus Index, ")
@@ -432,7 +430,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, " ")
     end
     close(resultfile)
-    
+
     # Write active power flow
     resultfile = open(string(dir_case_result, "res_p.csv"), "w")
     print(resultfile, "Branch Index, From/To, To/From, ")
@@ -458,7 +456,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, " ")
     end
     close(resultfile)
-    
+
     # Write reactive power flow
     resultfile = open(string(dir_case_result, "res_q.csv"), "w")
     print(resultfile, "Branch Index, From/To, To/From, ")

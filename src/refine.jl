@@ -11,16 +11,14 @@
 
 
 # ----------------- Load modules from registered package----------------
-using LinearAlgebra
-using JuMP
-using CPLEX
-# using LightGraphs
-# using LightGraphsFlows
-# using Gurobi
-using DataFrames
-using CSV
-using JSON
-using PowerModels
+# using LinearAlgebra
+# using JuMP
+# # using CPLEX
+# # using Gurobi
+# using DataFrames
+# using CSV
+# using JSON
+# using PowerModels
 
 
 
@@ -53,7 +51,7 @@ using PowerModels
 # dir_file = "/home/yichen.zhang/case_39/BS_generator.csv"
 # bs_data = CSV.read(dir_file)
 
-# # Pre-define array 
+# # Pre-define array
 # Tcr = Array{Float64,1}(undef, ngen)
 # Pcr = Array{Float64,1}(undef, ngen)
 # Krp = Array{Float64,1}(undef, ngen)
@@ -66,11 +64,11 @@ using PowerModels
 
 # # --------------Set time and resolution specifications-----------------
 # # The final time selection should be complied with restoration time requirement.
-# time_final = 500; # in minutes. 
+# time_final = 500; # in minutes.
 # time_series = 1:time_final;
 
 # # Choicing different time steps is the key for testing multiple resolutions
-# time_step = 20; 
+# time_step = 20;
 
 # # calculate stages
 # nstage = time_final/time_step;
@@ -130,7 +128,7 @@ using PowerModels
 #         @constraint(model, vl[(j,i),t] >= v[j,t] - ref[:bus][j]["vmax"]*(1-x[(i,j),t]))
 #         @constraint(model, vl[(j,i),t] <= v[j,t] - ref[:bus][j]["vmin"]*(1-x[(i,j),t]))
 
-#         # angle difference constraints 
+#         # angle difference constraints
 #         # angle difference constraints are only activated if the associated line is energized
 #         @constraint(model, a[i,t] - a[j,t] >= ref[:buspairs][(i,j)]["angmin"])
 #         @constraint(model, a[i,t] - a[j,t] <= ref[:buspairs][(i,j)]["angmax"])
@@ -141,7 +139,7 @@ using PowerModels
 
 #         # on-line generator cannot be shut down
 #         if t > 1
-#             @constraint(model, x[(i,j), t] >= x[(i,j), t-1]) 
+#             @constraint(model, x[(i,j), t] >= x[(i,j), t-1])
 #         end
 
 #         # bus should be energized before the connected genertor being on
@@ -328,15 +326,15 @@ using PowerModels
 #     for t in stages
 #         # Determine the slice of the time series data
 #         t_s = Int((t-1)*time_step+1+2) : Int(t*time_step+2); # add 2 because the first two columns are gen bus and gen index
-        
+
 #         # Check the status of the sliced time series data
 #         # If the current time series data contain 0, fix to zero
 #         if (0 in Interpol_y[g_index[1], t_s])
 #             @constraint(model, y[g,t] == 0)
-            
+
 #         # If the current time series data does not contain 0 but contain 2, do nothing
 #         elseif !(0 in Interpol_y[g_index[1], t_s]) & (2 in Interpol_y[g_index[1], t_s])
-            
+
 #         # If the current time series data is all 1, fix to one
 #         elseif sum(convert(Array,Interpol_y[g_index[1], t_s]))==size(Interpol_y[g_index[1], t_s])[1]
 #                 @constraint(model, y[g,t] == 1)
@@ -346,7 +344,7 @@ using PowerModels
 #             println(g)
 #             println(t_s)
 #         end
-        
+
 #     end
 # end
 # println("Heuristic completed")
@@ -579,7 +577,7 @@ function solve_refined_restoration(dir_case_network, network_data_format, dir_ca
     # load control constraint
     model = form_load_logic(model, ref, stages)
 
-    
+
     #--------------- Additional status constraints to implement the multi-resolution idea ---------------------
     # General idea is described as follows:
     # Example: y(low resolution): |  stage 1 = 0    | |   stage 2 = 0   | |   stage 3 =1  |
@@ -617,7 +615,7 @@ function solve_refined_restoration(dir_case_network, network_data_format, dir_ca
         end
     end
     println("Heuristic variable fix completed")
-    
+
 
     #------------------- Define objectives--------------------
 #     @objective(model, Min, sum(sum( - model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages)
@@ -625,7 +623,7 @@ function solve_refined_restoration(dir_case_network, network_data_format, dir_ca
 #     @objective(model, Min, sum(sum( - model[:pg][g,t] for g in keys(ref[:gen])) for t in stages)
 #                                 + sum(sum( - model[:pl][d, t] for d in keys(ref[:load])) for t in stages) )
     @objective(model, Min, sum(sum( - model[:pl][d, t] for d in keys(ref[:load])) for t in stages))
-    
+
     #------------- Build and solve model----------------
     # buildInternalModel(model)
     # m = model.internalModel.inner
@@ -635,7 +633,7 @@ function solve_refined_restoration(dir_case_network, network_data_format, dir_ca
     println("")
     println("Termination status: ", status)
     println("The objective value is: ", objective_value(model))
-    
+
   #
     # #------------- Record results ----------------
     # # results in stages
@@ -1019,5 +1017,5 @@ function solve_refined_restoration(dir_case_network, network_data_format, dir_ca
     close(resultfile)
 
     return ref, model
-    
+
 end
