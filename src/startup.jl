@@ -27,9 +27,8 @@ function solve_startup(dir_case_network,
     dir_case_blackstart,
     dir_case_result,
     t_final, t_step, gap,
-    wind_activation,
-    wind_data,
-    violation_probability=nothing)
+    wind,
+    wind_data=nothing)
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -66,17 +65,9 @@ function solve_startup(dir_case_network,
     # add wind into ref
     # #TODO: load wind data from csv or raw
 
-    if wind_activation == 1
-        # if wind_activate = 1, we generate wind data using probabilistic distribution
-        # #TODO: wind power distribution; currently Guassian is used
-        # ref[:wind] = Dict(
-        # 4 => Dict("bus"=>4, "pw_mean"=>4, "pw_dev"=>1),
-        # 14 => Dict("bus"=>14, "pw_mean"=>5, "pw_dev"=>1.2),
-        # 24 => Dict("bus"=>24, "pw_mean"=>6, "pw_dev"=>1.5),
-        # )
+    if wind["activation"] == 1
         model = def_var_wind(model, ref, stages)
-    elseif wind_activation == 2
-        # if wind_activate = 2, we use given wind data
+    elseif wind["activation"] == 2
         model = def_var_wind(model, ref, stages)
     end
 
@@ -89,19 +80,21 @@ function solve_startup(dir_case_network,
     model = form_load_logic_1(model, ref, stages)
 
     # wind power dispatch chance constraint
-    if wind_activation == 1
-        model, pw_sp = form_wind_saa_1(model, ref, stages, wind_data["sample_number"], wind_data["violation_probability"])
-    elseif wind_activation == 2
-        model, pw_sp = form_wind_saa_2(model, ref, stages, wind_data, violation_probability)
+    if wind["activation"] == 1
+        model, pw_sp = form_wind_saa_1(model, ref, stages, wind)
+    elseif wind["activation"] == 2
+        model, pw_sp = form_wind_saa_2(model, ref, stages, wind_data, wind["violation_probability"])
+    else
+        pw_sp = 0
     end
 
     # generator capacity is greater than load for all time
-    if wind_activation == 1
+    if wind["activation"] == 1
         println("Generation start-up with wind power")
         for t in stages
             @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
         end
-    elseif wind_activation == 2
+    elseif wind["activation"] == 2
         println("Generation start-up with wind power")
         for t in stages
             @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
@@ -366,5 +359,5 @@ function solve_startup(dir_case_network,
     end
     close(resultfile)
 
-    return ref, model, Pcr, Tcr, Krp, Trp
+    return ref, model, pw_sp, Pcr, Tcr, Krp, Trp
 end
