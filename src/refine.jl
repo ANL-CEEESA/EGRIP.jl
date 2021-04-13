@@ -584,7 +584,7 @@ function solve_refined_restoration(dir_case_network, network_data_format, dir_ca
     # Example: y (Interpolate):   0, 0, 0, 0, 0,  0,    x, x, x, x,  x,    1, 1, 1, 1, 1...
 
     # Read time series data
-    Interpol_y = CSV.read(dir_gen_plan);
+    Interpol_y = CSV.read(dir_gen_plan, DataFrame);
 
     # Fix generator black start sequence based on lower resolution results
     for g in keys(ref[:gen])

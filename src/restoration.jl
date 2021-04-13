@@ -98,7 +98,25 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
         model = enforce_damage_branch(model, ref, stages, line_damage)
     end
 
-
+    # @constraint(model, sum(model[:y][10, t] for t in stages) >= sum(model[:y][1, t] for t in stages))
+    # @constraint(model, sum(model[:y][1, t] for t in stages) >= sum(model[:y][4, t] for t in stages))
+    # @constraint(model, sum(model[:y][1, t] for t in stages) >= sum(model[:y][5, t] for t in stages))
+    # @constraint(model, sum(model[:y][1, t] for t in stages) >= sum(model[:y][8, t] for t in stages))
+    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][2, t] for t in stages))
+    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][3, t] for t in stages))
+    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][6, t] for t in stages))
+    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][7, t] for t in stages))
+    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][9, t] for t in stages))
+    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][2, t] for t in stages))
+    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][3, t] for t in stages))
+    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][6, t] for t in stages))
+    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][7, t] for t in stages))
+    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][9, t] for t in stages))
+    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][2, t] for t in stages))
+    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][3, t] for t in stages))
+    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][6, t] for t in stages))
+    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][7, t] for t in stages))
+    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][9, t] for t in stages))
     #------------------- Define objectives--------------------
     ## (1) maximize the generator status
 #     @objective(model, Max, sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
@@ -181,7 +199,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     ordered_gen = sort!(OrderedDict(ref[:gen])) # order the dict based on the key
     ordered_bus = sort!(OrderedDict(ref[:bus])) # order the dict based on the key
     ordered_branch = sort!(OrderedDict(ref[:branch])) # order the dict based on the key
-    ordered_arcs = sort!(OrderedDict(ref[:arcs]))
+    ordered_arcs = sort!(ref[:arcs])
 
     # Write branch energization solution
     CP[:x] = Dict();
@@ -456,6 +474,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
             println(resultfile, " ")
     end
     close(resultfile)
+
 
     # Write reactive power flow
     resultfile = open(string(dir_case_result, "res_q.csv"), "w")
