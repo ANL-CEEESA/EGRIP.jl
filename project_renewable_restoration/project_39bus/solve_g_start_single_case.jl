@@ -59,9 +59,7 @@ gap = 0.0
 nstage = t_final/t_step;
 stages = 1:nstage;
 
-# solve the problem
-test_from = 1
-test_end = 5
+
 # plotting setup
 line_style = [(0,(3,5,1,5)), (0,(5,1)), (0,(5,5)), (0,(5,10)), (0,(1,1))]
 line_colors = ["b", "r", "m", "lime", "darkorange"]
@@ -81,6 +79,10 @@ wind[2] = Dict("activation"=>1, "sample_number"=>10, "violation_probability"=>0.
 wind[3] = Dict("activation"=>1, "sample_number"=>100, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2)
 wind[4] = Dict("activation"=>1, "sample_number"=>500, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2)
 wind[5] = Dict("activation"=>1, "sample_number"=>1000, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2)
+
+# solve the problem
+test_from = 1
+test_end = 1
 for i in test_from:test_end
     ref[i], model[i], pw_sp[i] = solve_startup(dir_case_network, network_data_format,
                                 dir_case_blackstart, dir_case_result,
@@ -96,9 +98,11 @@ for i in test_from:test_end
 end
 
 # calculate the violation integer numbers
-vol_num = []
-for i in 1:wind[4]["sample_number"]
-    push!(vol_num,value(model[4][:w][i]))
+if test_end > 4
+    vol_num = []
+    for i in 1:wind[4]["sample_number"]
+        push!(vol_num,value(model[4][:w][i]))
+    end
 end
 
 # plot
@@ -205,25 +209,25 @@ PyPlot.show()
 sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_dispatch.png")
 PyPlot.savefig(sav_dict)
 
-
-PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
-rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-rcParams["font.family"] = "Arial"
-fig, ax = PyPlot.subplots(figsize=fig_size)
-for i in 1:wind[2]["sample_number"]
-    ax.plot(t_step:t_step:t_final, (pw_sp[2][i])*100)
+if test_end > 2
+    PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
+    rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
+    rcParams["font.family"] = "Arial"
+    fig, ax = PyPlot.subplots(figsize=fig_size)
+    for i in 1:wind[2]["sample_number"]
+        ax.plot(t_step:t_step:t_final, (pw_sp[2][i])*100)
+    end
+    ax.set_title("Wind Sampled", fontdict=Dict("fontsize"=>font_size))
+    ax.legend(loc="upper right", fontsize=font_size)
+    ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>font_size))
+    ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>font_size))
+    ax.xaxis.set_tick_params(labelsize=font_size)
+    ax.yaxis.set_tick_params(labelsize=font_size)
+    fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+    PyPlot.show()
+    sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_sample.png")
+    PyPlot.savefig(sav_dict)
 end
-ax.set_title("Wind Sampled", fontdict=Dict("fontsize"=>font_size))
-ax.legend(loc="upper right", fontsize=font_size)
-ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>font_size))
-ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>font_size))
-ax.xaxis.set_tick_params(labelsize=font_size)
-ax.yaxis.set_tick_params(labelsize=font_size)
-fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
-PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_sample.png")
-PyPlot.savefig(sav_dict)
-
 
 # save data into json
 using JSON

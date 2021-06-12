@@ -18,6 +18,11 @@ Solve generator start-up problem
         - restoration_line: specify initial line status, from where the problem type (partial or full restorations) can be determined
     - result storage directory
     - gap
+    - wind data
+        - wind activation 0 denotes no wind will support the restoration
+        - wind activation 1 denotes wind will support the restoration with its distribution as normal
+        - wind activation 2 denotes wind will support the restoration with time seires wind data
+        - wind activation 3 denotes wind will support the restoration with real quantile and interpolation (linear, cubic, or spline)
 - Output: Generator start-up sequence
 - Constraints:
     -
@@ -69,6 +74,8 @@ function solve_startup(dir_case_network,
         model = def_var_wind(model, ref, stages)
     elseif wind["activation"] == 2
         model = def_var_wind(model, ref, stages)
+    elseif wind["activation"] == 3
+        model = def_var_wind(model, ref, stages)
     end
 
 
@@ -84,6 +91,8 @@ function solve_startup(dir_case_network,
         model, pw_sp = form_wind_saa_1(model, ref, stages, wind)
     elseif wind["activation"] == 2
         model, pw_sp = form_wind_saa_2(model, ref, stages, wind_data, wind["violation_probability"])
+    elseif wind["activation"] == 3
+        model, pw_sp = form_wind_saa_3(model, ref, stages, wind, wind_data)
     else
         pw_sp = 0
     end
@@ -95,6 +104,11 @@ function solve_startup(dir_case_network,
             @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
         end
     elseif wind["activation"] == 2
+        println("Generation start-up with wind power")
+        for t in stages
+            @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
+        end
+    elseif wind["activation"] == 3
         println("Generation start-up with wind power")
         for t in stages
             @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])

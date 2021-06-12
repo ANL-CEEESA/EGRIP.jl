@@ -38,7 +38,7 @@ end
 cd(@__DIR__)
 
 # We can either add EGRIP to the Julia LOAD_PATH.
-push!(LOAD_PATH,"/Users/yichenzhang/GitHub/EGRIP.jl/src/")
+push!(LOAD_PATH,"../../src/")
 using EGRIP
 using JuMP
 using JSON
@@ -73,7 +73,7 @@ label_list = ["W/O Renewable", "W Renewable: Prob 0.05",
 # load real wind power data
 # note that we ignore the ERCOT wind data in the version control for security
 # Each time we may need to add the data folder manually
-wind_data = CSV.read("../ERCOT_wind/wind_power.csv", DataFrame)
+wind_data = CSV.read("../../ERCOT_wind/wind_power.csv", DataFrame)
 pw_sp = Dict()
 n_stages = length(stages)
 n_wind_data = size(wind_data, 1)
@@ -85,8 +85,8 @@ end
 
 
 # solve the problem
-test_from = 1
-test_end = 5
+test_from = 2
+test_end = 2
 model = Dict()
 wind = Dict()
 wind[1] = Dict("activation"=>0, "violation_probability"=>0.00)
@@ -94,8 +94,6 @@ wind[2] = Dict("activation"=>2, "violation_probability"=>0.05)
 wind[3] = Dict("activation"=>2, "violation_probability"=>0.1)
 wind[4] = Dict("activation"=>2, "violation_probability"=>0.15)
 wind[5] = Dict("activation"=>2, "violation_probability"=>0.2)
-wind_activation = [0, 2, 2, 2, 2]
-violation_probability = [0, 0.05, 0.10, 0.15, 0.20]
 for i in test_from:test_end
 ref, model[i] = solve_startup(dir_case_network, network_data_format,
                                 dir_case_blackstart, dir_case_result,

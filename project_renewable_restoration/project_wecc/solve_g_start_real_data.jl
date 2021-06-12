@@ -1,38 +1,12 @@
 # load registered package
-
-function get_value(model, stages)
-    Pg_seq = []
-    for t in stages
-        push!(Pg_seq, value(model[:pg_total][t]))
-    end
-
-    Pd_seq = []
-    for t in stages
-        push!(Pd_seq, value(model[:pd_total][t]))
-    end
-
-    Pw_seq = []
-    for t in stages
-        try
-            push!(Pw_seq, value(model[:pw][t]))
-        catch e
-            push!(Pw_seq, 0)
-        end
-    end
-    return Pg_seq, Pd_seq, Pw_seq
-end
-
-function check_load(ref)
-    for k in keys(ref[:load])
-        if ref[:load][k]["pd"] <= 0
-            println("Load bus: ", ref[:load][k]["load_bus"], ", active power: ", ref[:load][k]["pd"])
-        end
-    end
-end
+using JuMP
+using JSON
+using CSV
+using JuMP
+using DataFrames
 
 # The "current working directory" is very important for correctly loading modules.
 # One should refer to "Section 40 Code Loading" in Julia Manual for more details.
-
 # change the current working directory to the one containing the file
 # It seems Julia will not automatically change directory based on the operating file.
 cd(@__DIR__)
@@ -40,14 +14,12 @@ cd(@__DIR__)
 # We can either add EGRIP to the Julia LOAD_PATH.
 push!(LOAD_PATH,"/Users/yichenzhang/GitHub/EGRIP.jl/src/")
 using EGRIP
-using JuMP
-using JSON
-using CSV
-using JuMP
-using DataFrames
 # Or we use EGRIP as a module.
 # include("../src/EGRIP.jl")
 # using .EGRIP
+
+# local functions
+include("utils.jl")
 
 # # ------------ Interactive --------------
 dir_case_network = "case39.m"
