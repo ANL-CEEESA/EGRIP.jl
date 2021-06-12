@@ -10,25 +10,45 @@
 
 @doc raw"""
 Define generator variables
+- The definitation of variables corresponds to different formulations.
 """
-function def_var_gen(model, ref, stages)
-    # on-off status of gen at time t
-    @variable(model, y[keys(ref[:gen]),stages], Bin);
+function def_var_gen(model, ref, stages, form)
+    if form == 1
+        # on-off status of gen at time t
+        @variable(model, y[keys(ref[:gen]),stages], Bin);
+        # generation variable
+        @variable(model, pg[keys(ref[:gen]),stages])
+        @variable(model, qg[keys(ref[:gen]),stages])
+        # total load at time t
+        @variable(model, pg_total[stages])
+    elseif form == 2
+        # indicator of starting instant x_gt in the paper
+        @variable(model, ys[keys(ref[:gen]),stages], Bin);
+        # indicator of cranking
+        @variable(model, yc[keys(ref[:gen]),stages], Bin);
+        # indicator of ramping
+        @variable(model, yr[keys(ref[:gen]),stages], Bin);
+        # indicator of Pmax
+        @variable(model, yd[keys(ref[:gen]),stages], Bin);
+        # total generation capacity at time t
+        @variable(model, pg_total[stages]);
+    elseif form == 3
+        # starting instant x_g in the paper (continuous value in time)
+        @variable(model, yg[keys(ref[:gen])]);
+        # generator output
+        @variable(model, pg[keys(ref[:gen]),stages])
+        # supplementary binary value for the first if-then condition
+        @variable(model, ag[keys(ref[:gen]),stages], Bin);
+        # supplementary binary value for the second if-then condition
+        @variable(model, bg[keys(ref[:gen]),stages], Bin);
+        # supplementary binary value for the third if-then condition
+        @variable(model, cg[keys(ref[:gen]),stages], Bin);
+        # supplementary binary value for the last if-then condition
+        @variable(model, dg[keys(ref[:gen]),stages], Bin);
+        # total load at time t
+        @variable(model, pg_total[stages])
+    end
 
-    # generation variable
-    @variable(model, pg[keys(ref[:gen]),stages])
-    @variable(model, qg[keys(ref[:gen]),stages])
-
-    # indicator of starting instant x_gt in the paper
-    @variable(model, ys[keys(ref[:gen]),stages], Bin);
-    # indicator of cranking
-    @variable(model, yc[keys(ref[:gen]),stages], Bin);
-    # indicator of ramping
-    @variable(model, yr[keys(ref[:gen]),stages], Bin);
-    # indicator of Pmax
-    @variable(model, yd[keys(ref[:gen]),stages], Bin);
-    # total generation capacity at time t
-    @variable(model, pg_total[stages]);
     return model
 end
 
@@ -101,10 +121,10 @@ Generator cranking constraint
 \end{align*}
 ```
 """
-function form_gen_cranking(model, ref, stages, Pcr, Tcr)
+function form_gen_cranking_1(model, ref, stages, Pcr, Tcr)
 
     println("")
-    println("formulating generator cranking constraint")
+    println("Formulating generator cranking constraints")
 
     for t in stages
         for g in keys(ref[:gen])
@@ -127,6 +147,11 @@ function form_gen_cranking(model, ref, stages, Pcr, Tcr)
             @constraint(model, model[:qg][g,t] <= ref[:gen][g]["qmax"] * model[:y][g,t])
         end
     end
+
+    # define the total generation
+    for t in stages
+        @constraint(model, model[:pg_total][t] == sum(model[:pg][g,t] for g in keys(ref[:gen])))
+    end
     return model
 end
 
@@ -134,9 +159,9 @@ end
 
 
 @doc raw"""
-Generator cranking constraint (form 1)
+Generator cranking constraint (form 2)
 """
-function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
+function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
 
     # calculate ramping time
     # here we use minimum power
@@ -146,7 +171,7 @@ function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
     end
 
     println("")
-    println("formulating black-start constraints")
+    println("Formulating generator cranking constraints")
 
     # summation of ys will be one
     for g in keys(ref[:gen])
@@ -224,5 +249,72 @@ function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
     end
 
     # return variables
+    return model, Trp
+end
+
+
+@doc raw"""
+Generator cranking constraint (form 3)
+"""
+function form_gen_cranking_3(model, ref, stages, Pcr, Tcr, Krp)
+
+    # calculate ramping time
+    # here we use minimum power
+    Trp = Dict()
+    for g in keys(ref[:gen])
+        Trp[g] = ceil( (ref[:gen][g]["pmax"] + Pcr[g]) / Krp[g])
+    end
+
+    println("")
+    println("Formulating generator cranking constraints")
+
+    for t in stages
+        # first if-then
+        for g in keys(ref[:gen])
+            @constraint(model, model[:yg][g] - t >= 0.001 - 1000 * (1 - model[:ag][g,t]))
+            @constraint(model, model[:yg][g] - t <= 1000 * model[:ag][g,t])
+            @constraint(model, model[:pg][g,t] >= 0)
+            @constraint(model, model[:pg][g,t] <= 1000 * (1 - model[:ag][g,t]))
+        end
+
+        # second if-then
+        for g in keys(ref[:gen])
+            @constraint(model, t - model[:yg][g] - Tcr[g] <= 0.001 - 1000 * (1 - model[:bg][g,t]))
+            @constraint(model, t - model[:yg][g] - Tcr[g] >= 1000 * model[:bg][g,t])
+            @constraint(model, - 1000 * (1 - model[:bg][g,t]) <= model[:pg][g,t] + Pcr[g])
+            @constraint(model, 1000 * (1 - model[:bg][g,t]) >= model[:pg][g,t] + Pcr[g])
+        end
+
+        # third if-then
+        for g in keys(ref[:gen])
+            @constraint(model, t - model[:yg][g] - Tcr[g] - Trp[g] <= 0.001 - 1000 * (1 - model[:cg][g,t]))
+            @constraint(model, t - model[:yg][g] - Tcr[g] - Trp[g] >= 1000 * model[:cg][g,t])
+            @constraint(model, - 1000 * (1 - model[:cg][g,t]) <= model[:pg][g,t] - Krp[g] * (t - model[:yg][g] - Tcr[g]))
+            @constraint(model, 1000 * (1 - model[:cg][g,t]) >= model[:pg][g,t] - Krp[g] * (t - model[:yg][g] - Tcr[g]))
+        end
+
+        # last if-then
+        for g in keys(ref[:gen])
+            @constraint(model, - 1000 * (1 - model[:dg][g,t]) <= model[:pg][g,t] - ref[:gen][g]["pmax"])
+            @constraint(model, 1000 * (1 - model[:bg][g,t]) >= model[:pg][g,t] - ref[:gen][g]["pmax"])
+        end
+
+        # ensure only one stage can be activated at a time
+        for g in keys(ref[:gen])
+            @constraint(model, model[:ag][g,t] + model[:bg][g,t] + model[:cg][g,t] + model[:dg][g,t] == 1)
+        end
+    end
+
+    # define the range of activation
+    for g in keys(ref[:gen])
+        @constraint(model, model[:yg][g] >= 0 )
+        @constraint(model, model[:yg][g] <= stages[end])
+    end
+
+    # define the total generation
+    for t in stages
+        @constraint(model, model[:pg_total][t] == sum(model[:pg][g,t] for g in keys(ref[:gen])))
+    end
+
     return model, Trp
 end

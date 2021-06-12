@@ -18,11 +18,13 @@ Solve generator start-up problem
         - restoration_line: specify initial line status, from where the problem type (partial or full restorations) can be determined
     - result storage directory
     - gap
-    - wind data
+    - formulation types
+    - specifications of wind power
         - wind activation 0 denotes no wind will support the restoration
         - wind activation 1 denotes wind will support the restoration with its distribution as normal
         - wind activation 2 denotes wind will support the restoration with time seires wind data
         - wind activation 3 denotes wind will support the restoration with real quantile and interpolation (linear, cubic, or spline)
+    - if wind activation = 3, then real wind power density will be specified in wind_data
 - Output: Generator start-up sequence
 - Constraints:
     -
@@ -31,7 +33,10 @@ function solve_startup(dir_case_network,
     network_data_format,
     dir_case_blackstart,
     dir_case_result,
-    t_final, t_step, gap,
+    t_final,
+    t_step,
+    gap,
+    form,
     wind,
     wind_data=nothing)
     #----------------- Data processing -------------------
@@ -62,29 +67,36 @@ function solve_startup(dir_case_network,
 
     # ------------Define decision variable ---------------------
     # define generator variables
-    model = def_var_gen(model, ref, stages)
+    model = def_var_gen(model, ref, stages, form)
 
     # define load variables
-    model = def_var_load(model, ref, stages)
+    model = def_var_load(model, ref, stages, form)
 
-    # add wind into ref
+    # if wind power option is activated, define the variable
     # #TODO: load wind data from csv or raw
-
-    if wind["activation"] == 1
-        model = def_var_wind(model, ref, stages)
-    elseif wind["activation"] == 2
-        model = def_var_wind(model, ref, stages)
-    elseif wind["activation"] == 3
+    if wind["activation"] != 0
         model = def_var_wind(model, ref, stages)
     end
 
-
     # ------------Define constraints ---------------------
-    # generator cranking constraint
-    model, Trp = form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
-
-    # load pickup logic
-    model = form_load_logic_1(model, ref, stages)
+    if form == 1
+        # generator cranking constraint
+        model = form_gen_logic(model, ref, stages, nstage, Krp, Pcr)
+        model = form_gen_cranking_1(model, ref, stages, Pcr, Tcr)
+        Trp = 0
+        # load pickup logic
+        model = form_load_logic_1(model, ref, stages)
+    elseif form == 2
+        # generator cranking constraint
+        model, Trp = form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
+        # load pickup logic
+        model = form_load_logic_2(model, ref, stages)
+    elseif form == 3
+        # generator cranking constraint
+        model, Trp = form_gen_cranking_3(model, ref, stages, Pcr, Tcr, Krp)
+        # load pickup logic
+        model = form_load_logic_3(model, ref, stages)
+    end
 
     # wind power dispatch chance constraint
     if wind["activation"] == 1
@@ -98,17 +110,7 @@ function solve_startup(dir_case_network,
     end
 
     # generator capacity is greater than load for all time
-    if wind["activation"] == 1
-        println("Generation start-up with wind power")
-        for t in stages
-            @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
-        end
-    elseif wind["activation"] == 2
-        println("Generation start-up with wind power")
-        for t in stages
-            @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
-        end
-    elseif wind["activation"] == 3
+    if wind["activation"] != 0
         println("Generation start-up with wind power")
         for t in stages
             @constraint(model, model[:pw][t] + model[:pg_total][t] >= model[:pd_total][t])
@@ -122,8 +124,18 @@ function solve_startup(dir_case_network,
 
 
     #-----------------Define objectives--------------------
-    @objective(model, Min, sum(sum(t * model[:ys][g,t] for t in stages) for g in keys(ref[:gen])) +
+    println("Formulating objective")
+    if form == 1
+        @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages)
+                    + sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
+
+    elseif form == 2
+        @objective(model, Min, sum(sum(t * model[:ys][g,t] for t in stages) for g in keys(ref[:gen])) +
                             + sum(sum(t * model[:zs][d,t] for t in stages) for d in keys(ref[:load])))
+    elseif form == 3
+        @objective(model, Min, sum(model[:yg][g] for g in keys(ref[:gen])) +
+                            + sum(model[:zd][d] for d in keys(ref[:load])))
+    end
 
     #------------- Build and solve model----------------
     # buildInternalModel(model)
@@ -151,227 +163,229 @@ function solve_startup(dir_case_network,
         println("stage ", t, ": ", value(model[:pd_total][t])* ref[:baseMVA])
     end
 
-    # #----------- Write generation data ----------------------
-    CP = Dict();
-
-    ## Build a dictionary to store the changing point
-    CP[:ys] = Dict();
-    resultfile = open(string(dir_case_result, "res_ys.csv"), "w")
-    print(resultfile, "Gen Index, Gen Bus,")
-    for t in stages
-        if t<nstage
-            print(resultfile, t)
-            print(resultfile, ", ")
-        else
-            println(resultfile, t)
+    if form == 2
+        # #----------- Write generation data ----------------------
+        CP = Dict();
+        ## Build a dictionary to store the changing point
+        CP[:ys] = Dict();
+        resultfile = open(string(dir_case_result, "res_ys.csv"), "w")
+        print(resultfile, "Gen Index, Gen Bus,")
+        for t in stages
+            if t<nstage
+                print(resultfile, t)
+                print(resultfile, ", ")
+            else
+                println(resultfile, t)
+            end
         end
-    end
-    for (i, gen) in ref[:gen]
-                print(resultfile, i)
-                print(resultfile, ", ")
-                print(resultfile, gen["gen_bus"])
-                print(resultfile, ", ")
-                for t in stages
-                    if abs(value(model[:ys][i,t]) - 1) < 0.1
-                        CP[:ys][i] = t
-                        println("CP: ", t)
+        for (i, gen) in ref[:gen]
+                    print(resultfile, i)
+                    print(resultfile, ", ")
+                    print(resultfile, gen["gen_bus"])
+                    print(resultfile, ", ")
+                    for t in stages
+                        if abs(value(model[:ys][i,t]) - 1) < 0.1
+                            CP[:ys][i] = t
+                            println("CP: ", t)
+                        end
+                        if t< nstage
+                            print(resultfile, round(value(model[:ys][i,t])))
+                            print(resultfile, ",")
+                        else
+                            print(resultfile, value(model[:ys][i,t]))
+                        end
                     end
-                    if t< nstage
-                        print(resultfile, round(value(model[:ys][i,t])))
-                        print(resultfile, ",")
-                    else
-                        print(resultfile, value(model[:ys][i,t]))
-                    end
-                end
-            println(resultfile, " ")
-    end
-    close(resultfile)
-
-    resultfile = open(string(dir_case_result, "res_yc.csv"), "w")
-    print(resultfile, "Gen Index, Gen Bus,")
-    for t in stages
-        if t<nstage
-            print(resultfile, t)
-            print(resultfile, ", ")
-        else
-            println(resultfile, t)
+                println(resultfile, " ")
         end
-    end
-    for (i, gen) in ref[:gen]
-                print(resultfile, i)
-                print(resultfile, ", ")
-                print(resultfile, gen["gen_bus"])
-                print(resultfile, ", ")
-                for t in stages
-                    if t<nstage
-                        print(resultfile, round(value(model[:yc][i,t])))
-                        print(resultfile, ",")
-                    else
-                        print(resultfile, value(model[:yc][i,t]))
-                    end
-                end
-            println(resultfile, " ")
-    end
-    close(resultfile)
+        close(resultfile)
 
-    resultfile = open(string(dir_case_result, "res_yr.csv"), "w")
-    print(resultfile, "Gen Index, Gen Bus,")
-    for t in stages
-        if t<nstage
-            print(resultfile, t)
-            print(resultfile, ", ")
-        else
-            println(resultfile, t)
+        resultfile = open(string(dir_case_result, "res_yc.csv"), "w")
+        print(resultfile, "Gen Index, Gen Bus,")
+        for t in stages
+            if t<nstage
+                print(resultfile, t)
+                print(resultfile, ", ")
+            else
+                println(resultfile, t)
+            end
         end
-    end
-    for (i, gen) in ref[:gen]
-                print(resultfile, i)
-                print(resultfile, ", ")
-                print(resultfile, gen["gen_bus"])
-                print(resultfile, ", ")
-                for t in stages
-                    if t<nstage
-                        print(resultfile, round(value(model[:yr][i,t])))
-                        print(resultfile, ",")
-                    else
-                        print(resultfile, value(model[:yr][i,t]))
+        for (i, gen) in ref[:gen]
+                    print(resultfile, i)
+                    print(resultfile, ", ")
+                    print(resultfile, gen["gen_bus"])
+                    print(resultfile, ", ")
+                    for t in stages
+                        if t<nstage
+                            print(resultfile, round(value(model[:yc][i,t])))
+                            print(resultfile, ",")
+                        else
+                            print(resultfile, value(model[:yc][i,t]))
+                        end
                     end
-                end
-            println(resultfile, " ")
-    end
-    close(resultfile)
-
-    resultfile = open(string(dir_case_result, "res_yd.csv"), "w")
-    print(resultfile, "Gen Index, Gen Bus,")
-    for t in stages
-        if t<nstage
-            print(resultfile, t)
-            print(resultfile, ", ")
-        else
-            println(resultfile, t)
+                println(resultfile, " ")
         end
-    end
-    for (i, gen) in ref[:gen]
-                print(resultfile, i)
+        close(resultfile)
+
+        resultfile = open(string(dir_case_result, "res_yr.csv"), "w")
+        print(resultfile, "Gen Index, Gen Bus,")
+        for t in stages
+            if t<nstage
+                print(resultfile, t)
                 print(resultfile, ", ")
-                print(resultfile, gen["gen_bus"])
-                print(resultfile, ", ")
-                for t in stages
-                    if t<nstage
-                        print(resultfile, round(value(model[:yd][i,t])))
-                        print(resultfile, ",")
-                    else
-                        print(resultfile, value(model[:yd][i,t]))
+            else
+                println(resultfile, t)
+            end
+        end
+        for (i, gen) in ref[:gen]
+                    print(resultfile, i)
+                    print(resultfile, ", ")
+                    print(resultfile, gen["gen_bus"])
+                    print(resultfile, ", ")
+                    for t in stages
+                        if t<nstage
+                            print(resultfile, round(value(model[:yr][i,t])))
+                            print(resultfile, ",")
+                        else
+                            print(resultfile, value(model[:yr][i,t]))
+                        end
                     end
-                end
-            println(resultfile, " ")
-    end
-    close(resultfile)
-
-
-     # #----------- Write load data ----------------------
-    resultfile = open(string(dir_case_result, "res_zs.csv"), "w")
-    print(resultfile, "Load Index, Bus Index, ")
-    for t in stages
-        if t<nstage
-            print(resultfile, t)
-            print(resultfile, ", ")
-        else
-            println(resultfile, t)
+                println(resultfile, " ")
         end
-    end
-    for (i, load) in ref[:load]
-                print(resultfile, i)
+        close(resultfile)
+
+        resultfile = open(string(dir_case_result, "res_yd.csv"), "w")
+        print(resultfile, "Gen Index, Gen Bus,")
+        for t in stages
+            if t<nstage
+                print(resultfile, t)
                 print(resultfile, ", ")
-                print(resultfile, load["load_bus"])
-                print(resultfile, ", ")
-                for t in stages
-                    if t<nstage
-                        print(resultfile, round(value(model[:zs][i,t])))
-                        print(resultfile, ",")
-                    else
-                        print(resultfile, round(value(model[:zs][i,t])))
+            else
+                println(resultfile, t)
+            end
+        end
+        for (i, gen) in ref[:gen]
+                    print(resultfile, i)
+                    print(resultfile, ", ")
+                    print(resultfile, gen["gen_bus"])
+                    print(resultfile, ", ")
+                    for t in stages
+                        if t<nstage
+                            print(resultfile, round(value(model[:yd][i,t])))
+                            print(resultfile, ",")
+                        else
+                            print(resultfile, value(model[:yd][i,t]))
+                        end
                     end
-                end
-            println(resultfile, " ")
-    end
-    close(resultfile)
-
-    resultfile = open(string(dir_case_result, "res_z.csv"), "w")
-    print(resultfile, "Load Index, Bus Index, ")
-    for t in stages
-        if t<nstage
-            print(resultfile, t)
-            print(resultfile, ", ")
-        else
-            println(resultfile, t)
+                println(resultfile, " ")
         end
-    end
-    for (i, load) in ref[:load]
-                print(resultfile, i)
+        close(resultfile)
+
+
+         # #----------- Write load data ----------------------
+        resultfile = open(string(dir_case_result, "res_zs.csv"), "w")
+        print(resultfile, "Load Index, Bus Index, ")
+        for t in stages
+            if t<nstage
+                print(resultfile, t)
                 print(resultfile, ", ")
-                print(resultfile, load["load_bus"])
-                print(resultfile, ", ")
-                for t in stages
-                    if t<nstage
-                        print(resultfile, round(value(model[:z][i,t])))
-                        print(resultfile, ",")
-                    else
-                        print(resultfile, round(value(model[:z][i,t])))
+            else
+                println(resultfile, t)
+            end
+        end
+        for (i, load) in ref[:load]
+                    print(resultfile, i)
+                    print(resultfile, ", ")
+                    print(resultfile, load["load_bus"])
+                    print(resultfile, ", ")
+                    for t in stages
+                        if t<nstage
+                            print(resultfile, round(value(model[:zs][i,t])))
+                            print(resultfile, ",")
+                        else
+                            print(resultfile, round(value(model[:zs][i,t])))
+                        end
                     end
-                end
-            println(resultfile, " ")
-    end
-    close(resultfile)
-
-    # #---------------- Interpolate current plan to time series (one-minute based) data --------------------
-    # Interpolate generator energization solution to time series (one-minute based) data
-    resultfile = open(string(dir_case_result, "Interpol_ys.csv"), "w")
-    print(resultfile, "Gen Index, Gen Bus,")
-    for t in time_series
-        if t<time_final
-            print(resultfile, t)
-            print(resultfile, ", ")
-        else
-            println(resultfile, t)
+                println(resultfile, " ")
         end
-    end
-    for (i, gen) in ref[:gen]
-                print(resultfile, i)
+        close(resultfile)
+
+        resultfile = open(string(dir_case_result, "res_z.csv"), "w")
+        print(resultfile, "Load Index, Bus Index, ")
+        for t in stages
+            if t<nstage
+                print(resultfile, t)
                 print(resultfile, ", ")
-                print(resultfile, gen["gen_bus"])
+            else
+                println(resultfile, t)
+            end
+        end
+        for (i, load) in ref[:load]
+                    print(resultfile, i)
+                    print(resultfile, ", ")
+                    print(resultfile, load["load_bus"])
+                    print(resultfile, ", ")
+                    for t in stages
+                        if t<nstage
+                            print(resultfile, round(value(model[:z][i,t])))
+                            print(resultfile, ",")
+                        else
+                            print(resultfile, round(value(model[:z][i,t])))
+                        end
+                    end
+                println(resultfile, " ")
+        end
+        close(resultfile)
+
+        # #---------------- Interpolate current plan to time series (one-minute based) data --------------------
+        # Interpolate generator energization solution to time series (one-minute based) data
+        resultfile = open(string(dir_case_result, "Interpol_ys.csv"), "w")
+        print(resultfile, "Gen Index, Gen Bus,")
+        for t in time_series
+            if t<time_final
+                print(resultfile, t)
                 print(resultfile, ", ")
-                for t in time_series
-                    if t<time_final
-                       # Determine which stages should the current time instant be
-                        stage_index = ceil(t/time_step)
-                        # Determine if the current generator has a changing scenario
-                        if i in keys(CP[:ys])
-                            # check if the current stage is the changing stage
-                            # mark changing stage different from 0 or 1 (do not use string as it causes problems after reading from CSV)
-                            if CP[:ys][i] == stage_index
-                                print(resultfile, Int(2))
-                                print(resultfile, ", ")
-                            end
-                            if CP[:ys][i] < stage_index
-                                print(resultfile, 1)
-                                print(resultfile, ", ")
-                            end
-                            if CP[:ys][i] > stage_index
-                                print(resultfile, 0)
+            else
+                println(resultfile, t)
+            end
+        end
+        for (i, gen) in ref[:gen]
+                    print(resultfile, i)
+                    print(resultfile, ", ")
+                    print(resultfile, gen["gen_bus"])
+                    print(resultfile, ", ")
+                    for t in time_series
+                        if t<time_final
+                           # Determine which stages should the current time instant be
+                            stage_index = ceil(t/time_step)
+                            # Determine if the current generator has a changing scenario
+                            if i in keys(CP[:ys])
+                                # check if the current stage is the changing stage
+                                # mark changing stage different from 0 or 1 (do not use string as it causes problems after reading from CSV)
+                                if CP[:ys][i] == stage_index
+                                    print(resultfile, Int(2))
+                                    print(resultfile, ", ")
+                                end
+                                if CP[:ys][i] < stage_index
+                                    print(resultfile, 1)
+                                    print(resultfile, ", ")
+                                end
+                                if CP[:ys][i] > stage_index
+                                    print(resultfile, 0)
+                                    print(resultfile, ", ")
+                                end
+                            else
+                                print(resultfile, Int(round(value(model[:ys][i,stage_index]))))
                                 print(resultfile, ", ")
                             end
                         else
-                            print(resultfile, Int(round(value(model[:ys][i,stage_index]))))
-                            print(resultfile, ", ")
+                            print(resultfile, 1)
                         end
-                    else
-                        print(resultfile, 1)
                     end
-                end
-            println(resultfile, " ")
+                println(resultfile, " ")
+        end
+        close(resultfile)
+        
     end
-    close(resultfile)
 
     return ref, model, pw_sp, Pcr, Tcr, Krp, Trp
 end

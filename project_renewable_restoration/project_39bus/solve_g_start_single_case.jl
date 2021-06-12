@@ -59,7 +59,6 @@ gap = 0.0
 nstage = t_final/t_step;
 stages = 1:nstage;
 
-
 # plotting setup
 line_style = [(0,(3,5,1,5)), (0,(5,1)), (0,(5,5)), (0,(5,10)), (0,(1,1))]
 line_colors = ["b", "r", "m", "lime", "darkorange"]
@@ -69,7 +68,10 @@ label_list = ["W/O Wind", "Wind: Sample 10, Prob 0.10",
                             "Wind: Sample 500, Prob 0.10",
                             "Wind: Sample 1000, Prob 0.10"]
 
-
+# # ----------------- Solve the problem -------------------
+test_from = 1
+test_end = 1
+formulation_type = 1
 model = Dict()
 ref = Dict()
 pw_sp = Dict()
@@ -79,14 +81,10 @@ wind[2] = Dict("activation"=>1, "sample_number"=>10, "violation_probability"=>0.
 wind[3] = Dict("activation"=>1, "sample_number"=>100, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2)
 wind[4] = Dict("activation"=>1, "sample_number"=>500, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2)
 wind[5] = Dict("activation"=>1, "sample_number"=>1000, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2)
-
-# solve the problem
-test_from = 1
-test_end = 1
 for i in test_from:test_end
     ref[i], model[i], pw_sp[i] = solve_startup(dir_case_network, network_data_format,
                                 dir_case_blackstart, dir_case_result,
-                                t_final, t_step, gap, wind[i])
+                                t_final, t_step, gap, formulation_type, wind[i])
 end
 
 # --------- retrieve results ---------
@@ -229,17 +227,17 @@ if test_end > 2
     PyPlot.savefig(sav_dict)
 end
 
-# save data into json
-using JSON
-json_string = JSON.json(Pw_seq)
-open("results_startup/data_gen_startup_fix_prob_wind.json","w") do f
-  JSON.print(f, json_string)
-end
-json_string = JSON.json(Pg_seq)
-open("results_startup/data_gen_startup_fix_prob_gen.json","w") do f
-  JSON.print(f, json_string)
-end
-json_string = JSON.json(Pd_seq)
-open("results_startup/data_gen_startup_fix_prob_load.json","w") do f
-  JSON.print(f, json_string)
-end
+# # save data into json
+# using JSON
+# json_string = JSON.json(Pw_seq)
+# open("results_startup/data_gen_startup_fix_prob_wind.json","w") do f
+#   JSON.print(f, json_string)
+# end
+# json_string = JSON.json(Pg_seq)
+# open("results_startup/data_gen_startup_fix_prob_gen.json","w") do f
+#   JSON.print(f, json_string)
+# end
+# json_string = JSON.json(Pd_seq)
+# open("results_startup/data_gen_startup_fix_prob_load.json","w") do f
+#   JSON.print(f, json_string)
+# end

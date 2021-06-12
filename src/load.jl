@@ -12,24 +12,37 @@
 @doc raw"""
 Define load variables
 """
-function def_var_load(model, ref, stages)
-    # load P and Q
-    @variable(model, pl[keys(ref[:load]),stages])
-    @variable(model, ql[keys(ref[:load]),stages])
-
-    # indicator of load status
-    @variable(model, z[keys(ref[:load]),stages], Bin)
-    # indicator of load restoration instant
-    @variable(model, zs[keys(ref[:load]),stages], Bin);
-    # total load at time t
-    @variable(model, pd_total[stages])
+function def_var_load(model, ref, stages, form)
+    if form == 1
+        # load P and Q
+        @variable(model, pl[keys(ref[:load]),stages])
+        @variable(model, ql[keys(ref[:load]),stages])
+        # total load at time t
+        @variable(model, pd_total[stages])
+    elseif form == 2
+        # indicator of load status
+        @variable(model, z[keys(ref[:load]),stages], Bin)
+        # indicator of load restoration instant
+        @variable(model, zs[keys(ref[:load]),stages], Bin);
+        # total load at time t
+        @variable(model, pd_total[stages])
+    elseif form == 3
+        # starting instant x_d in the paper (continuous value in time)
+        @variable(model, zd[keys(ref[:load])])
+        # supplementary binary value for the first if-then condition
+        @variable(model, ed[keys(ref[:load]),stages], Bin);
+        # individual load value
+        @variable(model, pl[keys(ref[:load]),stages])
+        # total load at time t
+        @variable(model, pd_total[stages])
+    end
 
     return model
 end
 
 
 @doc raw"""
-Load pickup constraint
+Load pickup constraint used for full restoration problem
 - restored load cannot exceed its maximum values
 ```math
 \begin{align*}
@@ -47,7 +60,7 @@ Load pickup constraint
 """
 function form_load_logic(model, ref, stages)
     println("")
-    println("formulating load logic constraints")
+    println("Formulating load pickup constraints")
     pl = model[:pl]
     ql = model[:ql]
     u = model[:u]
@@ -92,16 +105,60 @@ function form_load_logic(model, ref, stages)
             end
         end
     end
+
+    # define the total load
+    for t in stages
+        @constraint(model, model[:pd_total][t] == sum(model[:pl][d,t] for d in keys(ref[:load])))
+    end
+
     return model
 end
 
+
 @doc raw"""
-Load pickup constraint form 1
+Load pickup constraint form 1 used in generator start-up problem
 """
 function form_load_logic_1(model, ref, stages)
+    println("")
+    println("Formulating load pickup constraints")
+    pl = model[:pl]
+    ql = model[:ql]
 
-    z = model[:z]
-    zs = model[:zs]
+    for t in stages
+        for l in keys(ref[:load])
+
+            # active power load
+            if ref[:load][l]["pd"] >= 0  # The current bus has positive active power load
+                @constraint(model, pl[l,t] >= 0)
+                @constraint(model, pl[l,t] <= ref[:load][l]["pd"])
+                if t > 1
+                    @constraint(model, pl[l,t] >= pl[l,t-1]) # no load shedding
+                end
+            else
+                @constraint(model, pl[l,t] <= 0) # The current bus has no positive active power load ?
+                @constraint(model, pl[l,t] >= ref[:load][l]["pd"])
+                if t > 1
+                    @constraint(model, pl[l,t] <= pl[l,t-1])
+                end
+            end
+        end
+    end
+
+    # define the total load
+    for t in stages
+        @constraint(model, model[:pd_total][t] == sum(model[:pl][d,t] for d in keys(ref[:load])))
+    end
+
+    return model
+end
+
+
+@doc raw"""
+Load pickup constraint form 2 used in generator start-up problem
+"""
+function form_load_logic_2(model, ref, stages)
+
+    println("Formulating load pickup constraints")
 
     # summation of zs will be one
     for d in keys(ref[:load])
@@ -127,6 +184,40 @@ function form_load_logic_1(model, ref, stages)
     # total load
     for t in stages
         @constraint(model, model[:pd_total][t] == sum(ref[:load][d]["pd"] * z[d,t] for d in keys(ref[:load])))
+    end
+
+    return model
+end
+
+
+@doc raw"""
+Load pickup constraint form 3
+"""
+function form_load_logic_3(model, ref, stages)
+
+    println("Formulating load pickup constraints")
+
+    for t in stages
+        # first if-them
+        for d in keys(ref[:load])
+            @constraint(model, model[:zd][d] - t >= 0.001 - 1000 * (1 - model[:ed][d,t]))
+            @constraint(model, model[:zd][d] - t <= 1000 * model[:ed][d,t])
+            @constraint(model, 0 <= model[:pl][d,t])
+            @constraint(model, model[:pl][d,t] <= 1000 * (1 - model[:ed][d,t]))
+            @constraint(model, -1000 * model[:ed][d,t] <= model[:pl][d,t] - ref[:load][d]["pd"])
+            @constraint(model, -1000 * model[:ed][d,t] >= model[:pl][d,t] - ref[:load][d]["pd"])
+        end
+    end
+
+    # define the range of activation
+    for d in keys(ref[:load])
+        @constraint(model, model[:zd][d] >= 0 )
+        @constraint(model, model[:zd][d] <= stages[end])
+    end
+
+    # define the total load
+    for t in stages
+        @constraint(model, model[:pd_total][t] == sum(model[:pl][d,t] for d in keys(ref[:load])))
     end
 
     return model

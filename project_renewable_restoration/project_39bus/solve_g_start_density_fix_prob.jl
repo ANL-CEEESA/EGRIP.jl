@@ -62,6 +62,7 @@ end
 # # ----------------- Solve the problem -------------------
 test_from = 1
 test_end = 2
+formulation_type = 2
 model = Dict()
 wind = Dict()
 pw_sp = Dict()
@@ -73,7 +74,7 @@ wind[5] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>
 for i in test_from:test_end
 ref, model[i], pw_sp[i] = solve_startup(dir_case_network, network_data_format,
                                 dir_case_blackstart, dir_case_result,
-                                t_final, t_step, gap, wind[i], wind_density)
+                                t_final, t_step, gap, formulation_type, wind[i], wind_density)
 end
 
 # --------- retrieve results and plotting ---------

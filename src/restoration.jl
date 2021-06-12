@@ -68,10 +68,12 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
 
     # ------------Define decision variable ---------------------
+    # here we use formulation 1
+    form = 1
     # define generator variables
-    model = def_var_gen(model, ref, stages)
+    model = def_var_gen(model, ref, stages, form)
     # define load variable
-    model = def_var_load(model, ref, stages)
+    model = def_var_load(model, ref, stages, form)
     # define flow variable
     model = def_var_flow(model, ref, stages)
 
@@ -86,10 +88,10 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     model = form_gen_logic(model, ref, stages, nstage, Krp, Pcr)
 
     # generator cranking constraint
-    model = form_gen_cranking(model, ref, stages, Pcr, Tcr)
+    model = form_gen_cranking_1(model, ref, stages, Pcr, Tcr)
 
     # load control constraint
-    model = form_load_logic(model, ref, stages)
+    model = form_load_logic_1(model, ref, stages)
 
 #     # enforce the damaged branches to be off during the whole restoration process
     if line_damage == nothing
