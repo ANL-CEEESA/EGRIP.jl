@@ -62,8 +62,11 @@ function solve_startup(dir_case_network,
     # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
     # model = Model(solver=CplexSolver())
     # JuMP 0.19
-    model = Model(CPLEX.Optimizer)
-    set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
+    # # CPLEX
+    # model = Model(CPLEX.Optimizer)
+    # set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
+    # # Gurobi
+    model = Model(Gurobi.Optimizer)
 
     # ------------Define decision variable ---------------------
     # define generator variables
@@ -126,15 +129,29 @@ function solve_startup(dir_case_network,
     #-----------------Define objectives--------------------
     println("Formulating objective")
     if form == 1
-        @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages)
-                    + sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
+        @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages) +
+                    sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
 
     elseif form == 2
         @objective(model, Min, sum(sum(t * model[:ys][g,t] for t in stages) for g in keys(ref[:gen])) +
-                            + sum(sum(t * model[:zs][d,t] for t in stages) for d in keys(ref[:load])))
+                            sum(sum(t * model[:zs][d,t] for t in stages) for d in keys(ref[:load])))
     elseif form == 3
+        # # option 1: min startup instant + max active power
+        # # option 1 should be used with larger M (step: 1000, power: 1000)
+        # # option 1 Gurobi 0.7s, CPLEX 4s
+        # @objective(model, Min, sum(model[:yg][g] for g in keys(ref[:gen])) +
+        #     sum(model[:zd][d] for d in keys(ref[:load])) -
+        #     sum(sum(model[:pg][g,t] for g in keys(ref[:gen])) for t in stages) -
+        #     sum(sum(model[:pl][d,t] for d in keys(ref[:load])) for t in stages))
+        # option 2: min startup instant
+        # # option 2 should be used with smaller M (step: 30-50, power: 100)
+        # # option 2 Gurobi 35s, CPLEX ~~s
+        # # option 2 should be used with tighter M (step: 30-50, power: pmax + 5)
+        # # option 2 Gurobi 13s (optimal found in 1s), CPLEX 2578s (optimal found in 4s)
+        # # The experience is the solver can quickly found the optimal solution within 2-4s,
+        # # but took long time to find the optimal certificates.
         @objective(model, Min, sum(model[:yg][g] for g in keys(ref[:gen])) +
-                            + sum(model[:zd][d] for d in keys(ref[:load])))
+            sum(model[:zd][d] for d in keys(ref[:load])))
     end
 
     #------------- Build and solve model----------------
@@ -384,7 +401,7 @@ function solve_startup(dir_case_network,
                 println(resultfile, " ")
         end
         close(resultfile)
-        
+
     end
 
     return ref, model, pw_sp, Pcr, Tcr, Krp, Trp

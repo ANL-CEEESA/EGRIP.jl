@@ -6,9 +6,18 @@ using PowerModels
 function get_value(A)
     n_dim = ndims(A)
     if n_dim == 1
-        solution_value = []
-        for i in axes(A)[1]
-            push!(solution_value, value(A[i]))
+        if axes(A)[1] isa Base.KeySet
+            # Input variable use dict key as axis"
+            solution_value = Dict()
+            for i in axes(A)[1]
+                solution_value[i] = value(A[i])
+            end
+        else
+            # Input variable use time steps as axis"
+            solution_value = []
+            for i in axes(A)[1]
+                push!(solution_value, value(A[i]))
+            end
         end
     elseif n_dim == 2
         solution_value = Dict()
@@ -52,7 +61,7 @@ using EGRIP
 dir_case_network = "case39.m"
 dir_case_blackstart = "BS_generator.csv"
 network_data_format = "matpower"
-dir_case_result = "results_startup/"
+dir_case_result = "results_startup_form_comp/"
 t_final = 300
 t_step = 10
 gap = 0.0
@@ -67,50 +76,51 @@ stages = 1:nstage;
 line_style = [(0,(3,5,1,5)), (0,(5,1)), (0,(5,5)), (0,(5,10)), (0,(1,1))]
 line_colors = ["b", "r", "m", "lime", "darkorange"]
 line_markers = ["8", "s", "p", "*", "o"]
-label_list = ["W/O Wind", "Wind: Sample 10, Prob 0.10",
-                            "Wind: Sample 100, Prob 0.10",
-                            "Wind: Sample 500, Prob 0.10",
-                            "Wind: Sample 1000, Prob 0.10"]
+label_list = ["Form 1", "Form 2"]
 
 # # ----------------- Solve the problem -------------------
 test_from = 1
-test_end = 1
-formulation_type = 2
+test_end = 2
+formulation_type = [2, 3]
 model = Dict()
 ref = Dict()
 pw_sp = Dict()
 wind = Dict()
 wind[1] = Dict("activation"=>0)
-wind[2] = Dict("activation"=>1, "sample_number"=>10, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2) # power is in MVA base
-wind[3] = Dict("activation"=>1, "sample_number"=>100, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2)
-wind[4] = Dict("activation"=>1, "sample_number"=>500, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2)
-wind[5] = Dict("activation"=>1, "sample_number"=>1000, "violation_probability"=>0.1, "mean"=>0.4, "var"=>0.2)
+wind[2] = Dict("activation"=>0)
 for i in test_from:test_end
     ref[i], model[i], pw_sp[i] = solve_startup(dir_case_network, network_data_format,
                                 dir_case_blackstart, dir_case_result,
-                                t_final, t_step, gap, formulation_type, wind[i])
+                                t_final, t_step, gap, formulation_type[i], wind[i])
 end
 
 # --------- retrieve results ---------
-ag_seq = get_value(model[1][:ag])
-yg_seq = get_value(model[1][:yg])
-zd_seq = get_value(model[1][:zd])
+ys_seq = get_value(model[1][:ys])
+zs_seq = get_value(model[1][:zs])
+yg_seq = get_value(model[2][:yg])
+zd_seq = get_value(model[2][:zd])
 
+# look into the startup instant
+for i in keys(ys_seq)
+    startup_instant_form_1 = findall(x->x==1, ys_seq[i])[1]
+    startup_instant_form_2 = round(Int64, yg_seq[i])
+    println("Startup instant of generator ", i, ", Formulation 1: ", startup_instant_form_1, ", Formulation 2: ", startup_instant_form_2)
+end
+# look into the startup instant
+for i in keys(zs_seq)
+    startup_instant_form_1 = findall(x->x==1, zs_seq[i])[1]
+    startup_instant_form_2 = round(Int64, zd_seq[i])
+    println("Startup instant of load ", i, ", Formulation 1: ", startup_instant_form_1, ", Formulation 2: ", startup_instant_form_2)
+end
 Pg_seq = Dict()
 Pg_seq[1] = get_value(model[1][:pg_total])
-
+Pg_seq[2] = get_value(model[2][:pg_total])
 Pd_seq = Dict()
 Pd_seq[1] = get_value(model[1][:pd_total])
+Pd_seq[2] = get_value(model[2][:pd_total])
 
-# calculate the violation integer numbers
-if test_end > 4
-    vol_num = []
-    for i in 1:wind[4]["sample_number"]
-        push!(vol_num,value(model[4][:w][i]))
-    end
-end
 
-# plot
+# ------------ plot ------------
 using PyPlot
 # If true, return Python-based GUI; otherwise, return Julia backend
 
@@ -138,7 +148,7 @@ ax.xaxis.set_tick_params(labelsize=font_size)
 ax.yaxis.set_tick_params(labelsize=font_size)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_gen.png")
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_form_comp_gen.png")
 PyPlot.savefig(sav_dict)
 
 
@@ -163,32 +173,32 @@ ax.xaxis.set_tick_params(labelsize=font_size)
 ax.yaxis.set_tick_params(labelsize=font_size)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_load.png")
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_form_comp_load.png")
 PyPlot.savefig(sav_dict)
 
-PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
-rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-rcParams["font.family"] = "Arial"
-fig, ax = PyPlot.subplots(figsize=fig_size)
-for i in test_from:test_end
-    ax.plot(t_step:t_step:t_final, (Pg_seq[i] - Pd_seq[i])*100,
-                color=line_colors[i],
-                linestyle = line_style[i],
-                marker=line_markers[i],
-                linewidth=2,
-                markersize=4,
-                label=label_list[i])
-end
-ax.set_title("System Capacity", fontdict=Dict("fontsize"=>font_size))
-ax.legend(loc="upper left", fontsize=font_size)
-ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>font_size))
-ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>font_size))
-ax.xaxis.set_tick_params(labelsize=font_size)
-ax.yaxis.set_tick_params(labelsize=font_size)
-fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
-PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_cap.png")
-PyPlot.savefig(sav_dict)
+# PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
+# rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
+# rcParams["font.family"] = "Arial"
+# fig, ax = PyPlot.subplots(figsize=fig_size)
+# for i in test_from:test_end
+#     ax.plot(t_step:t_step:t_final, (Pg_seq[i] - Pd_seq[i])*100,
+#                 color=line_colors[i],
+#                 linestyle = line_style[i],
+#                 marker=line_markers[i],
+#                 linewidth=2,
+#                 markersize=4,
+#                 label=label_list[i])
+# end
+# ax.set_title("System Capacity", fontdict=Dict("fontsize"=>font_size))
+# ax.legend(loc="upper left", fontsize=font_size)
+# ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>font_size))
+# ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>font_size))
+# ax.xaxis.set_tick_params(labelsize=font_size)
+# ax.yaxis.set_tick_params(labelsize=font_size)
+# fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+# PyPlot.show()
+# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_cap.png")
+# PyPlot.savefig(sav_dict)
 
 # PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
 # rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")

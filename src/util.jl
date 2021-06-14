@@ -16,11 +16,11 @@ function load_network(dir_case_network, network_data_format)
     # check network data format and load accordingly
     # we are currently relying on PowerModels's IO functions
     if network_data_format == "json"
-        println("print dir_case_network")
+        println("Print dir_case_network")
         println(dir_case_network)
         ref = Dict()
         ref = JSON.parsefile(dir_case_network)  # parse and transform data
-        println("reconstruct data loaded from json")
+        println("Reconstruct data loaded from json")
         ref = Dict([Symbol(key) => val for (key, val) in pairs(ref)])
         ref[:gen] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:gen])])
         ref[:bus] = Dict([parse(Int,string(key)) => val for (key, val) in pairs(ref[:bus])])
@@ -35,19 +35,19 @@ function load_network(dir_case_network, network_data_format)
             parse(Int, split(key, ['(', ',', ')'])[3]))=> val for (key, val) in pairs(ref[:buspairs])])
         ref[:arcs] = [Tuple(val) for (key, val) in pairs(ref[:arcs])]
         ref[:bus_arcs] = Dict([key=>[Tuple(arc) for arc in val] for (key,val) in pairs(ref[:bus_arcs])])
-        println("complete loading network data in json format")
+        println("Complete loading network data in json format")
     elseif network_data_format == "matpower"
         # Convert data from matpower format to Julia Dict (PowerModels format)
         data0 = PowerModels.parse_file(dir_case_network)
         ref = PowerModels.build_ref(data0)[:nw][0]
-        println("complete loading network data in matpower format")
+        println("Complete loading network data in matpower format")
     elseif network_data_format == "psse"
         # Convert data from psse to Julia Dict (PowerModels format)
         data0 = PowerModels.parse_file(dir_case_network)
         ref = PowerModels.build_ref(data0)[:nw][0]
-        println("complete loading network data in psse format")
+        println("Complete loading network data in psse format")
     else
-        println("un-supported network data format")
+        println("Un-supported network data format")
     end
 
     return ref

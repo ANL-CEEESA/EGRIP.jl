@@ -3,7 +3,7 @@ module EGRIP
 using LinearAlgebra
 using JuMP
 using CPLEX
-# using Gurobi
+using Gurobi
 using DataFrames
 using CSV
 using JSON

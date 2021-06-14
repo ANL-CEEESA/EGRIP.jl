@@ -1,4 +1,4 @@
-# load registered package
+
 function get_value(model, stages)
     Pg_seq = []
     for t in stages

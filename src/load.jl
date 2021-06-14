@@ -27,8 +27,8 @@ function def_var_load(model, ref, stages, form)
         # total load at time t
         @variable(model, pd_total[stages])
     elseif form == 3
-        # starting instant x_d in the paper (continuous value in time)
-        @variable(model, zd[keys(ref[:load])])
+        # starting instant x_d in the paper (continuous value in time step)
+        @variable(model, zd[keys(ref[:load])], Int)
         # supplementary binary value for the first if-then condition
         @variable(model, ed[keys(ref[:load]),stages], Bin);
         # individual load value
@@ -169,7 +169,7 @@ function form_load_logic_2(model, ref, stages)
     for t in stages
         if t > 1
             for d in keys(ref[:load])
-                @constraint(model, sum(z[d,i] for i in 1:(t-1)) <= (t - 1) * (1 - zs[d,t]))
+                @constraint(model, sum(model[:z][d,i] for i in 1:(t-1)) <= (t - 1) * (1 - model[:zs][d,t]))
             end
         end
     end
@@ -177,13 +177,13 @@ function form_load_logic_2(model, ref, stages)
     # a load is served to the end of the time horizon once it is picked up
     for t in stages
         for d in keys(ref[:load])
-            @constraint(model, sum(z[d,i] for i in t:stages[end]) >= (stages[end] - t + 1) * zs[d,t])
+            @constraint(model, sum(model[:z][d,i] for i in t:stages[end]) >= (stages[end] - t + 1) * model[:zs][d,t])
         end
     end
 
     # total load
     for t in stages
-        @constraint(model, model[:pd_total][t] == sum(ref[:load][d]["pd"] * z[d,t] for d in keys(ref[:load])))
+        @constraint(model, model[:pd_total][t] == sum(ref[:load][d]["pd"] * model[:z][d,t] for d in keys(ref[:load])))
     end
 
     return model
@@ -200,18 +200,22 @@ function form_load_logic_3(model, ref, stages)
     for t in stages
         # first if-them
         for d in keys(ref[:load])
-            @constraint(model, model[:zd][d] - t >= 0.001 - 1000 * (1 - model[:ed][d,t]))
-            @constraint(model, model[:zd][d] - t <= 1000 * model[:ed][d,t])
+            # big M for power lower and upper bounds
+            M_power_bound = ref[:load][d]["pd"]
+
+            # combined if-then
+            @constraint(model, t - model[:zd][d] <= 30 * (1 - model[:ed][d,t]))
+            @constraint(model, t - model[:zd][d] >= -30 * model[:ed][d,t])
             @constraint(model, 0 <= model[:pl][d,t])
-            @constraint(model, model[:pl][d,t] <= 1000 * (1 - model[:ed][d,t]))
-            @constraint(model, -1000 * model[:ed][d,t] <= model[:pl][d,t] - ref[:load][d]["pd"])
-            @constraint(model, -1000 * model[:ed][d,t] >= model[:pl][d,t] - ref[:load][d]["pd"])
+            @constraint(model, model[:pl][d,t] <= M_power_bound * (1 - model[:ed][d,t]))
+            @constraint(model, -M_power_bound * model[:ed][d,t] <= model[:pl][d,t] - ref[:load][d]["pd"])
+            @constraint(model, model[:pl][d,t] - ref[:load][d]["pd"] <= M_power_bound * model[:ed][d,t])
         end
     end
 
     # define the range of activation
     for d in keys(ref[:load])
-        @constraint(model, model[:zd][d] >= 0 )
+        @constraint(model, model[:zd][d] >= 1 )
         @constraint(model, model[:zd][d] <= stages[end])
     end
 
