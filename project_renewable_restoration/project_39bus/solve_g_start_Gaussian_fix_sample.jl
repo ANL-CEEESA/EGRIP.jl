@@ -1,38 +1,6 @@
 # load registered package
 using JuMP
 
-function get_value(model, stages)
-    Pg_seq = []
-    for t in stages
-        push!(Pg_seq, value(model[:pg_total][t]))
-    end
-
-    Pd_seq = []
-    for t in stages
-        push!(Pd_seq, value(model[:pd_total][t]))
-    end
-
-    Pw_seq = []
-    for t in stages
-        try
-            push!(Pw_seq, value(model[:pw][t]))
-        catch e
-            push!(Pw_seq, 0)
-        end
-    end
-
-    return Pg_seq, Pd_seq, Pw_seq
-end
-
-
-function check_load(ref)
-    for k in keys(ref[:load])
-        if ref[:load][k]["pd"] <= 0
-            println("Load bus: ", ref[:load][k]["load_bus"], ", active power: ", ref[:load][k]["pd"])
-        end
-    end
-end
-
 # The "current working directory" is very important for correctly loading modules.
 # One should refer to "Section 40 Code Loading" in Julia Manual for more details.
 
