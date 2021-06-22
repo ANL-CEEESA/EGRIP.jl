@@ -17,6 +17,7 @@ using EGRIP
 # load registered package
 using JuMP
 using PowerModels
+using DataStructures
 
 # include project utility functions
 include("proj_utils.jl")
@@ -26,7 +27,7 @@ dir_case_network = "case39.m"
 dir_case_blackstart = "BS_generator.csv"
 network_data_format = "matpower"
 dir_case_result = "results_startup_form_comp/"
-t_final = 300
+t_final = 400
 t_step = 10
 gap = 0.0
 nstage = t_final/t_step;
@@ -65,13 +66,15 @@ yg_seq = get_value(model[2][:yg])
 zd_seq = get_value(model[2][:zd])
 
 # look into the startup instant
-for i in keys(ys_seq)
+ordered_gen = sort!(OrderedDict(ref[1][:gen])) # order the dict based on the key
+for i in keys(ordered_gen)
     startup_instant_form_1 = findall(x->x==1, ys_seq[i])[1]
     startup_instant_form_2 = round(Int64, yg_seq[i])
     println("Startup instant of generator ", i, ", Formulation 1: ", startup_instant_form_1, ", Formulation 2: ", startup_instant_form_2)
 end
 # look into the startup instant
-for i in keys(zs_seq)
+ordered_load = sort!(OrderedDict(ref[1][:load])) # order the dict based on the key
+for i in keys(ordered_load)
     startup_instant_form_1 = findall(x->x==1, zs_seq[i])[1]
     startup_instant_form_2 = round(Int64, zd_seq[i])
     println("Startup instant of load ", i, ", Formulation 1: ", startup_instant_form_1, ", Formulation 2: ", startup_instant_form_2)
@@ -82,18 +85,35 @@ Pg_seq[2] = get_value(model[2][:pg_total])
 Pd_seq = Dict()
 Pd_seq[1] = get_value(model[1][:pd_total])
 Pd_seq[2] = get_value(model[2][:pd_total])
-
+Pg_ind_seq = Dict()
+Pg_ind_seq[1] = get_value(model[1][:pg])
+Pg_ind_seq[2] = get_value(model[2][:pg])
 
 # ------------ plot ------------
+# general plot setting
 using PyPlot
-# If true, return Python-based GUI; otherwise, return Julia backend
-
-font_size = 20
-fig_size=(12,5)
-
 PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 rcParams["font.family"] = "Arial"
+font_size = 20
+fig_size=(12,5)
+
+# compare individual generator Trajectories
+for g in keys(ordered_gen)
+    fig, ax = PyPlot.subplots(figsize=fig_size)
+    ax.plot(t_step:t_step:t_final, (Pg_ind_seq[1][g])*100, label="Form 1")
+    ax.plot(t_step:t_step:t_final, (Pg_ind_seq[2][g])*100, label="Form 2")
+    ax.set_title(string("Generator ",g), fontdict=Dict("fontsize"=>font_size))
+    ax.legend(loc="lower right", fontsize=font_size)
+    ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>font_size))
+    ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>font_size))
+    ax.xaxis.set_tick_params(labelsize=font_size)
+    ax.yaxis.set_tick_params(labelsize=font_size)
+    fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+    PyPlot.show()
+end
+
+# total generator capacity
 fig, ax = PyPlot.subplots(figsize=fig_size)
 for i in test_from:test_end
     ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,

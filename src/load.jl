@@ -197,15 +197,17 @@ function form_load_logic_3(model, ref, stages)
 
     println("Formulating load pickup constraints")
 
+    M_time_bound = stages[end] + 50
+
     for t in stages
         # first if-them
         for d in keys(ref[:load])
             # big M for power lower and upper bounds
-            M_power_bound = ref[:load][d]["pd"]
+            M_power_bound = ref[:load][d]["pd"] + 20
 
             # combined if-then
-            @constraint(model, t - model[:zd][d] <= 30 * (1 - model[:ed][d,t]))
-            @constraint(model, t - model[:zd][d] >= -30 * model[:ed][d,t])
+            @constraint(model, t - model[:zd][d] <= M_time_bound * (1 - model[:ed][d,t]) - 0.1)
+            @constraint(model, t - model[:zd][d] >= -M_time_bound * model[:ed][d,t])
             @constraint(model, 0 <= model[:pl][d,t])
             @constraint(model, model[:pl][d,t] <= M_power_bound * (1 - model[:ed][d,t]))
             @constraint(model, -M_power_bound * model[:ed][d,t] <= model[:pl][d,t] - ref[:load][d]["pd"])
@@ -215,7 +217,7 @@ function form_load_logic_3(model, ref, stages)
 
     # define the range of activation
     for d in keys(ref[:load])
-        @constraint(model, model[:zd][d] >= 1 )
+        @constraint(model, model[:zd][d] >= 1)
         @constraint(model, model[:zd][d] <= stages[end])
     end
 

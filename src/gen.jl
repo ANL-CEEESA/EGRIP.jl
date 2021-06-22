@@ -30,6 +30,8 @@ function def_var_gen(model, ref, stages, form)
         @variable(model, yr[keys(ref[:gen]),stages], Bin);
         # indicator of Pmax
         @variable(model, yd[keys(ref[:gen]),stages], Bin);
+        # generator output
+        @variable(model, pg[keys(ref[:gen]),stages])
         # total generation capacity at time t
         @variable(model, pg_total[stages]);
     elseif form == 3
@@ -167,13 +169,22 @@ function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
         Trp[g] = ceil( (ref[:gen][g]["pmax"] + Pcr[g]) / Krp[g])
     end
 
+    for g in keys(ref[:gen])
+        println("Generator: ",g,"  Cranking time: ", Tcr[g])
+    end
+    for g in keys(ref[:gen])
+        println("Generator: ",g,"  Pmax by Krp*Trp: ", Krp[g]*Trp[g],"  Pmax: ",ref[:gen][g]["pmax"])
+    end
+
     println("Formulating generator cranking constraints")
 
+    println("summation of ys will be one")
     # summation of ys will be one
     for g in keys(ref[:gen])
         @constraint(model, sum(model[:ys][g,t] for t in stages) == 1)
     end
 
+    println("a NBS generator has no activity before it is started")
     # a NBS generator has no activity before it is started
     for t in stages
         # Eq (1): no cranking before be activated
@@ -197,7 +208,7 @@ function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
             @constraint(model, (t + Tcr[g] + Trp[g] - 1) * (1 - model[:ys][g,t]) >= sum(model[:yd][g,i] for i in 1:t_terminal))
         end
     end
-
+    println("once started, a cranking is followed")
     # once started, a cranking is followed
     for t in stages
         for g in keys(ref[:gen])
@@ -205,7 +216,7 @@ function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
             @constraint(model, sum(model[:yc][g,i] for i in t:t_terminal) >= model[:ys][g,t] * min(stages[end] - t, Tcr[g]))
         end
     end
-
+    println("once cranking is finished, a ramping is followed")
     # once cranking is finished, a ramping is followed
     for t in stages
         for g in keys(ref[:gen])
@@ -215,12 +226,21 @@ function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
         end
     end
 
-#     # once ramping is finished, generator should be at max
+    println("once ramping is finished, generator should be at max")
+    # once ramping is finished, generator should be at max
     for t in stages
         for g in keys(ref[:gen])
             t_terminal = stages[end]
             t_start = t + Tcr[g]+ Trp[g] - 1
             @constraint(model, sum(model[:yd][g,i] for i in t_start:t_terminal) >= model[:ys][g,t] * (stages[end] - (t + Tcr[g]+ Trp[g] - 1)))
+        end
+    end
+
+    println("individual generation at each time t")
+    # individual generation at each time t
+    for t in stages
+        for g in keys(ref[:gen])
+            @constraint(model, model[:pg][g,t] == model[:yc][g,t] * (-Pcr[g]) + sum(model[:yr][g,i] * Krp[g] for i in 1:t) )
         end
     end
 
@@ -263,33 +283,35 @@ function form_gen_cranking_3(model, ref, stages, Pcr, Tcr, Krp)
 
     println("Formulating generator cranking constraints")
 
+    M_time_bound = stages[end] + 50
+
     for t in stages
         # first if-then
         for g in keys(ref[:gen])
             # big M for power lower and upper bounds
-            M_power_bound = ref[:gen][g]["pmax"] + 5
+            M_power_bound = ref[:gen][g]["pmax"] + 20
 
             # first if-then
-            @constraint(model, t- model[:yg][g] <= 30 * (1 - model[:ag][g,t]))
-            @constraint(model, t- model[:yg][g] >= -30 * model[:ag][g,t])
+            @constraint(model, t- model[:yg][g] <= M_time_bound * (1 - model[:ag][g,t]) - 0.1)
+            @constraint(model, t- model[:yg][g] >= -M_time_bound * model[:ag][g,t])
             @constraint(model, -M_power_bound * (1 - model[:ag][g,t]) <= model[:pg][g,t])
             @constraint(model, model[:pg][g,t] <= M_power_bound * (1 - model[:ag][g,t]))
 
             # second if-then
-            @constraint(model, t - model[:yg][g] - Tcr[g] <= 30 * (1 - model[:bg][g,t]))
-            @constraint(model, t - model[:yg][g] - Tcr[g] >= -40 * model[:bg][g,t])
+            @constraint(model, t - model[:yg][g] - Tcr[g] <= M_time_bound * (1 - model[:bg][g,t]) - 0.1)
+            @constraint(model, t - model[:yg][g] - Tcr[g] >= -M_time_bound * model[:bg][g,t])
             @constraint(model, -M_power_bound * (1 + model[:ag][g,t] - model[:bg][g,t]) <= model[:pg][g,t] + Pcr[g])
             @constraint(model, model[:pg][g,t] + Pcr[g] <= M_power_bound * (1 + model[:ag][g,t] - model[:bg][g,t]))
 
             # third if-then
-            @constraint(model, t - model[:yg][g] - Tcr[g] - Trp[g] <= 30 * (1 - model[:cg][g,t]))
-            @constraint(model, t - model[:yg][g] - Tcr[g] - Trp[g] >= -50 * model[:cg][g,t])
-            @constraint(model, -M_power_bound * (1 + model[:ag][g,t] + model[:bg][g,t] - model[:cg][g,t]) <= model[:pg][g,t] - Krp[g] * (t - model[:yg][g] - Tcr[g]))
-            @constraint(model, model[:pg][g,t] - Krp[g] * (t - model[:yg][g] - Tcr[g]) <= M_power_bound * (1+ model[:ag][g,t] + model[:bg][g,t] - model[:cg][g,t]))
+            @constraint(model, t - model[:yg][g] - Tcr[g] - Trp[g] <= M_time_bound * (1 - model[:cg][g,t]) - 0.1)
+            @constraint(model, t - model[:yg][g] - Tcr[g] - Trp[g] >= -M_time_bound * model[:cg][g,t])
+            @constraint(model, -M_power_bound * (1 + model[:ag][g,t] + model[:bg][g,t] - model[:cg][g,t]) <= model[:pg][g,t] - Krp[g] * (t - model[:yg][g] - Tcr[g] + 1))
+            @constraint(model, model[:pg][g,t] - Krp[g] * (t - model[:yg][g] - Tcr[g] + 1) <= M_power_bound * (1+ model[:ag][g,t] + model[:bg][g,t] - model[:cg][g,t]))
 
             # last if-then
-            @constraint(model, -M_power_bound * (model[:ag][g,t] + model[:bg][g,t] + model[:cg][g,t]) <= model[:pg][g,t] - ref[:gen][g]["pmax"])
-            @constraint(model, model[:pg][g,t] - ref[:gen][g]["pmax"] <= M_power_bound * (model[:ag][g,t] + model[:bg][g,t] + model[:cg][g,t]))
+            @constraint(model, -M_power_bound * (model[:ag][g,t] + model[:bg][g,t] + model[:cg][g,t]) <= model[:pg][g,t] - Krp[g]*Trp[g])
+            @constraint(model, model[:pg][g,t] - Krp[g]*Trp[g] <= M_power_bound * (model[:ag][g,t] + model[:bg][g,t] + model[:cg][g,t]))
         end
     end
 
