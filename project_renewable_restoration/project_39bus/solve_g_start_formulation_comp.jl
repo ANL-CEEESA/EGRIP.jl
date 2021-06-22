@@ -1,46 +1,3 @@
-# load registered package
-using JuMP
-using PowerModels
-
-# get values from optimization variables with less or equal to two dimension
-function get_value(A)
-    n_dim = ndims(A)
-    if n_dim == 1
-        if axes(A)[1] isa Base.KeySet
-            # Input variable use dict key as axis"
-            solution_value = Dict()
-            for i in axes(A)[1]
-                solution_value[i] = value(A[i])
-            end
-        else
-            # Input variable use time steps as axis"
-            solution_value = []
-            for i in axes(A)[1]
-                push!(solution_value, value(A[i]))
-            end
-        end
-    elseif n_dim == 2
-        solution_value = Dict()
-        for i in axes(A)[1]
-            solution_value[i] = []
-            for j in axes(A)[2]
-                push!(solution_value[i], value(A[i,j]))
-            end
-        end
-    else
-        println("Currently does not support higher dimensional variables")
-    end
-    return solution_value
-end
-
-
-function check_load(ref)
-    for k in keys(ref[:load])
-        if ref[:load][k]["pd"] <= 0
-            println("Load bus: ", ref[:load][k]["load_bus"], ", active power: ", ref[:load][k]["pd"])
-        end
-    end
-end
 
 # The "current working directory" is very important for correctly loading modules.
 # One should refer to "Section 40 Code Loading" in Julia Manual for more details.
@@ -56,6 +13,13 @@ using EGRIP
 # Or we use EGRIP as a module.
 # include("../src/EGRIP.jl")
 # using .EGRIP
+
+# load registered package
+using JuMP
+using PowerModels
+
+# include project utility functions
+include("proj_utils.jl")
 
 # # ------------ Interactive --------------
 dir_case_network = "case39.m"

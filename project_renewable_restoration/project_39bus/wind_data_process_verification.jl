@@ -56,6 +56,8 @@ wind_data = convert(Matrix, wind_data)
 
 # --demo--
 demo_number = 1
+
+# ---------------- method 1: resample based on constructed histogram ---------
 # (1) obtain the risk interpolation
 prob = 1.0:-0.1:0.1
 itp = interpolate((wind_data[demo_number, :],), prob, Gridded(Linear()))
@@ -65,9 +67,7 @@ PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia b
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 rcParams["font.family"] = "Arial"
 fig, ax = PyPlot.subplots(figsize=(9, 6))
-for i in 1:size(wind_data)[1]
-    ax.plot(wind_data[i, :], prob, color="b", linewidth=2)
-end
+ax.plot(wind_data[demo_number, :], prob, color="b", linewidth=2)
 # ax.scatter(wind_data[1, :], prob, color="b", linewidth=2)
 ax.set_title("Wind Power POE (Delivering Risk)", fontdict=Dict("fontsize"=>20))
 # ax.legend(loc="lower right", fontsize=20)
@@ -79,7 +79,7 @@ fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
 
 # (2) discretize the risk level
-histogram_approximation_number = 1000
+histogram_approximation_number = 100
 wind_power_sample = range(minimum(wind_data[demo_number, :]), maximum(wind_data[demo_number, :]), length=histogram_approximation_number)
 wind_hist = Dict()
 wind_hist["a"] = Float64[]
@@ -136,6 +136,8 @@ PyPlot.show()
 
 # (4) finally we can use sampling function in StatsBase.jl that can sample from population with analytical weight
 # our analytical weight will be equal to the density since the band length is the same
+using Random
+Random.seed!(1523) # Setting the seed
 w = ProbabilityWeights(wind_hist["d"])
 wind_resample = sample(wind_hist["ab"][1:end-1], w, 50000)
 PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
@@ -146,7 +148,7 @@ ax.hist(wind_resample, bins=500, color=(0.1, 0.1, 0.1, 0.1), edgecolor="r")
 ax.set_title("Wind Power Resampling Histogram", fontdict=Dict("fontsize"=>20))
 # ax.legend(loc="lower right", fontsize=20)
 ax.xaxis.set_label_text("Wind Power (MW)", fontdict=Dict("fontsize"=>20))
-ax.yaxis.set_label_text("Probability", fontdict=Dict("fontsize"=>20))
+ax.yaxis.set_label_text("Frequency", fontdict=Dict("fontsize"=>20))
 ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
@@ -154,43 +156,20 @@ PyPlot.show()
 
 
 
-# --------------sample wind power through 30 steps with 1000 samples at each step-----------------
-# (1) construct the empirical desity (histogram) from risk function
-# The "density_est_from_risk" function is a construction based on the previous steps
-wind_density = Dict()
-for t in 1:size(wind_data)[1]
-    wind_density[t] = density_est_from_risk(wind_data[t,:], 1.0:-0.1:0.1, histogram_approximation_number)
-end
-
-# (2) sample from the empirical desity (histogram)
-using Random
-sample_number = 100
-Random.seed!(1043) # Setting the seed
-pw_sp = Dict()
-for s in 1:sample_number
-    pw_sp[s] = []
-    for t in 1:30
-        wind_s_t = sample(wind_density[t]["ab"][1:end-1], ProbabilityWeights(wind_density[t]["d"]), 1)
-        push!(pw_sp[s], wind_s_t[1])
-    end
-end
-
-# (3) plot wind power samples
-using PyPlot
+# ---------------- method 2: resample based on interpolation ---------
+prob_ins = 0.1:0.1:1.0
+itp_x_prob = interpolate((prob_ins,), reverse(wind_data[demo_number, :]), Gridded(Linear()))
+wind_resample_1 = itp_x_prob(rand(Uniform(0.1, 1), 50000))
 PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 rcParams["font.family"] = "Arial"
-fig, ax = PyPlot.subplots(figsize=(12, 5))
-for s in 1:sample_number
-    ax.plot(10:10:300, (pw_sp[s]), linewidth=0.5)
-end
-for i in 1:size(wind_data)[2]
-    ax.plot(10:10:300, wind_data[1:1:30, i], color="k", linewidth=1)
-end
-ax.set_title("Wind Samples", fontdict=Dict("fontsize"=>20))
-ax.legend(loc="lower right", fontsize=20)
-ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
-ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
+fig, ax = PyPlot.subplots(figsize=(9, 6))
+ax.hist(wind_resample, bins=500, color="b", edgecolor="b")
+ax.hist(wind_resample_1, bins=500, color="r", edgecolor="r", alpha=0.5)
+ax.set_title("Wind Power Resampling Histogram", fontdict=Dict("fontsize"=>20))
+# ax.legend(loc="lower right", fontsize=20)
+ax.xaxis.set_label_text("Wind Power (MW)", fontdict=Dict("fontsize"=>20))
+ax.yaxis.set_label_text("Frequency", fontdict=Dict("fontsize"=>20))
 ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
