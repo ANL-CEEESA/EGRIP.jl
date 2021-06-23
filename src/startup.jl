@@ -25,9 +25,14 @@ Solve generator start-up problem
         - wind activation 2 denotes wind will support the restoration with time seires wind data
         - wind activation 3 denotes wind will support the restoration with real quantile and interpolation (linear, cubic, or spline)
     - if wind activation = 3, then real wind power density will be specified in wind_data
+    - The followings are the keyword arguments
+        - wind_data: time series wind data
+        - saa_mode: different chance constraints enforcement in sample average approximations
 - Output: Generator start-up sequence
 - Constraints:
-    -
+    - generato cranking
+    - load pickup
+    - power balance
 """
 function solve_startup(dir_case_network,
     network_data_format,
@@ -38,7 +43,8 @@ function solve_startup(dir_case_network,
     gap,
     form,
     wind,
-    wind_data=nothing)
+    wind_data=nothing;
+    saa_mode=1)
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -107,7 +113,7 @@ function solve_startup(dir_case_network,
     elseif wind["activation"] == 2
         model, pw_sp = form_wind_saa_2(model, ref, stages, wind_data, wind["violation_probability"])
     elseif wind["activation"] == 3
-        model, pw_sp = form_wind_saa_3(model, ref, stages, wind, wind_data)
+        model, pw_sp = form_wind_saa_3(model, ref, stages, wind, wind_data; mode=saa_mode)
     else
         pw_sp = 0
     end
@@ -133,7 +139,7 @@ function solve_startup(dir_case_network,
                     sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
 
     elseif form == 2
-        @objective(model, Min, sum(sum(t * model[:ys][g,t] for t in stages) for g in keys(ref[:gen])) +  
+        @objective(model, Min, sum(sum(t * model[:ys][g,t] for t in stages) for g in keys(ref[:gen])) +
                             sum(sum(t * model[:zs][d,t] for t in stages) for d in keys(ref[:load])))
     elseif form == 3
         # # option 1: min startup instant + max active power

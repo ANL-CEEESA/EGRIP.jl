@@ -164,7 +164,7 @@ end
 
 # (2) sample from the empirical desity (histogram)
 using Random
-sample_number = 100
+sample_number = 20
 Random.seed!(1043) # Setting the seed
 pw_sp = Dict()
 for s in 1:sample_number

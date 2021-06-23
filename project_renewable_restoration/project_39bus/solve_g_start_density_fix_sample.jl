@@ -23,7 +23,7 @@ using Interpolations
 using Distributions
 
 # local functions
-include("utils.jl")
+include("proj_utils.jl")
 
 # # ------------ Load data --------------
 dir_case_network = "case39.m"

@@ -23,14 +23,14 @@ using Interpolations
 using Distributions
 
 # local functions
-include("utils.jl")
+include("proj_utils.jl")
 
 # # ------------ Load data --------------
 dir_case_network = "case39.m"
 dir_case_blackstart = "BS_generator.csv"
 network_data_format = "matpower"
 dir_case_result = "results_startup_density/"
-t_final = 300
+t_final = 400
 t_step = 10
 gap = 0.0
 nstage = Int64(t_final/t_step)
@@ -42,7 +42,7 @@ line_colors = ["b", "r", "m", "lime", "darkorange"]
 line_markers = ["8", "s", "p", "*", "o"]
 label_list = ["W/O Wind",
                 "Wind: Sample 10, Prob 0.4",
-                "Wind:  Sample 50, Prob 0.4",
+                "Wind:  Sample 10, Prob 0.4",
                 "Wind: Sample 100, Prob 0.4",
                 "Wind: Sample 500, Prob 0.4"]
 
@@ -56,41 +56,51 @@ prob = 1.0:-0.1:0.1
 # construct estimated density function
 wind_density = Dict()
 for i in 1:size(wind_data)[1]
-    wind_density[i] = density_est_from_risk(wind_data[i,:], 1.0:-0.1:0.1, 100)
+    wind_density[i] = density_est_from_risk(wind_data[i,:], 1.0:-0.1:0.1, 1000)
 end
 
 # # ----------------- Solve the problem -------------------
-test_from = 1
+test_from = 2
 test_end = 2
 formulation_type = 2
+saa_mode_option = [1, 2]
 model = Dict()
 wind = Dict()
 pw_sp = Dict()
 wind[1] = Dict("activation"=>0, "violation_probability"=>0.00, "sample_number"=>0, "seed"=>1)
 wind[2] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>10, "seed"=>1)
-wind[3] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>50, "seed"=>1)
+wind[3] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>10, "seed"=>1)
 wind[4] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>100, "seed"=>1)
 wind[5] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>500, "seed"=>1)
+# here we use keyword arguments
 for i in test_from:test_end
 ref, model[i], pw_sp[i] = solve_startup(dir_case_network, network_data_format,
                                 dir_case_blackstart, dir_case_result,
-                                t_final, t_step, gap, formulation_type, wind[i], wind_density)
+                                t_final, t_step, gap, formulation_type, wind[i], wind_density; saa_mode=saa_mode_option[i])
 end
 
 # --------- retrieve results and plotting ---------
+println("retrieve optimization results")
 Pg_seq = Dict()
 Pd_seq = Dict()
 Pw_seq = Dict()
 w_seq = Dict()
 for i in test_from:test_end
-    Pg_seq[i], Pd_seq[i], Pw_seq[i], w_seq[i] = get_value(model[i], stages)
+    Pg_seq[i] = get_value(model[i][:pg_total])
+    Pd_seq[i] = get_value(model[i][:pd_total])
+    if i >= 2
+        Pw_seq[i] = get_value(model[i][:pw])
+        w_seq[i] = get_value(model[i][:w])
+    end
 end
 
+# # Pyplot generic setting
+using PyPlot
+PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
+rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
+rcParams["font.family"] = "Arial"
+
 # # plot generator power
-# using PyPlot
-# PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
-# rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-# rcParams["font.family"] = "Arial"
 # fig, ax = PyPlot.subplots(figsize=(12, 5))
 # for i in test_from:test_end
 #     ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
@@ -165,25 +175,28 @@ end
 # wind dispatch command
 wind_data_POE_WF3 = CSV.read("../../ERCOT_wind/wind_farm3_POE.csv", DataFrame)
 wind_data_POE_WF3 = convert(Matrix, wind_data)
-PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
-rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-rcParams["font.family"] = "Arial"
 fig, ax = PyPlot.subplots(figsize=(12, 5))
 for i in test_from:test_end
     if i >= 2
-        for st in 1:wind[i]["sample_number"]
-            if value(model[i][:w][st]) > 0
-                ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=3, alpha=0.4)
-            else
+        if saa_mode_option[i] == 1
+            for st in 1:wind[i]["sample_number"]
+                if value(model[i][:w][st]) > 0
+                    ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=3, alpha=0.4)
+                else
+                    ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=1.0, alpha=0.3)
+                end
+            end
+        elseif saa_mode_option[i] == 2
+            for st in 1:wind[i]["sample_number"]
                 ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=1.0, alpha=0.3)
             end
         end
     end
 end
 for i in 1:size(wind_data_POE_WF3)[2]
-    ax.plot(t_step:t_step:t_final, wind_data_POE_WF3[1:1:30, i], color="k", linewidth=0.5)
+    ax.plot(t_step:t_step:t_final, wind_data_POE_WF3[1:1:40, i], color="k", linewidth=0.5)
 end
-for i in test_from:test_end
+for i in 2:test_end
     ax.plot(t_step:t_step:t_final, (Pw_seq[i])*100,
                 color=line_colors[i],
                 linestyle = line_style[i],
@@ -200,8 +213,26 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_dispatch_10.png")
-PyPlot.savefig(sav_dict)
+# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_dispatch_10.png")
+# PyPlot.savefig(sav_dict)
+
+# plot SAA violation scenarios
+fig, ax = PyPlot.subplots(figsize=(12, 5))
+for i in test_from:test_end
+    if i >= 2
+        for t in stages
+            ax.scatter(t, sum(w_seq[i][st][t] for st in 1:wind[i]["sample_number"]))
+        end
+    end
+end
+ax.set_title("SAA violation scenarios", fontdict=Dict("fontsize"=>20))
+ax.legend(loc="upper right", fontsize=20)
+ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
+ax.yaxis.set_label_text("Number of violations (MW)", fontdict=Dict("fontsize"=>20))
+ax.xaxis.set_tick_params(labelsize=20)
+ax.yaxis.set_tick_params(labelsize=20)
+fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+PyPlot.show()
 
 # # ------------------- save data into json --------------------
 # using JSON

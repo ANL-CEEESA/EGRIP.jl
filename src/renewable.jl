@@ -95,8 +95,11 @@ end
 @doc raw"""
 Form wind power dispatch chance constraints approximated by Sample Averaged Approximation
 This function is associated with wind activation 3 option: wind data given by an estimated density
+The chance constraints in sample-average approximation can be enforced into samples through all periods or individual periods
+- Mode 1: The chance constraints can be enforced into samples through all periods
+- Mode 2: The chance constraints can be enforced into samples through individual periods
 """
-function form_wind_saa_3(model, ref, stages, wind, wind_density)
+function form_wind_saa_3(model, ref, stages, wind, wind_density; mode=1)
 
     # #TODO: different wind power distribution
     # # sample wind power
@@ -111,20 +114,41 @@ function form_wind_saa_3(model, ref, stages, wind, wind_density)
     end
 
     # integer variables for sample averaged approximation
-    @variable(model, w[1:wind["sample_number"]], Bin)
+    if mode == 1
+        @variable(model, w[1:wind["sample_number"]], Bin)
+    elseif mode == 2
+        @variable(model, w[1:wind["sample_number"],stages], Bin)
+    end
 
     # chance constraint approximation
     println("Approximate chance constraints using sample averaged approximation: wind data option 3")
-    for s in 1:wind["sample_number"]
-        for t in stages
-            @constraint(model, model[:pw][t] - 100 * model[:w][s] <= pw_sp[s][Int(t)])
+    if mode == 1
+        for s in 1:wind["sample_number"]
+            for t in stages
+                @constraint(model, model[:pw][t] - 100 * model[:w][s] <= pw_sp[s][Int(t)])
+            end
+        end
+    elseif mode == 2
+        for s in 1:wind["sample_number"]
+            for t in stages
+                @constraint(model, model[:pw][t] - 100 * model[:w][s, Int(t)] <= pw_sp[s][Int(t)])
+            end
         end
     end
 
     # total violated cases should be less than a value
-    @constraint(model, sum(model[:w][s] for s in 1:wind["sample_number"]) <= wind["violation_probability"] * wind["sample_number"])
+    if mode == 1
+        println("In SAA mode 1: sample-wise")
+        @constraint(model, sum(model[:w][s] for s in 1:wind["sample_number"]) <= wind["violation_probability"] * wind["sample_number"])
+    elseif mode == 2
+        println("In SAA mode 2: time-sample-wise")
+        for t in stages
+            @constraint(model, sum(model[:w][s, Int(t)] for s in 1:wind["sample_number"]) <= wind["violation_probability"] * wind["sample_number"])
+        end
+    end
 
     # Additionally, the dispatchable wind power cannot exceed the total installed capacity
+    println("Wind max capacity: ", maximum(wind_density[1]["a"])/100)
     for t in stages
         @constraint(model, model[:pw][t] <= maximum(wind_density[1]["a"])/100)
         @constraint(model, model[:pw][t] >= 0)
