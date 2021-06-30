@@ -116,13 +116,12 @@ end
 
 
 @doc raw"""
-Load pickup constraint form 1 used in generator start-up problem
+Load pickup constraint (formulation 1)
 """
 function form_load_logic_1(model, ref, stages)
     println("")
     println("Formulating load pickup constraints")
     pl = model[:pl]
-    ql = model[:ql]
 
     for t in stages
         for l in keys(ref[:load])

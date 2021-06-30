@@ -41,18 +41,19 @@ stages = 1:nstage;
 line_style = [(0,(3,5,1,5)), (0,(5,1)), (0,(5,5)), (0,(5,10)), (0,(1,1))]
 line_colors = ["b", "r", "m", "lime", "darkorange"]
 line_markers = ["8", "s", "p", "*", "o"]
-label_list = ["Form 1", "Form 2"]
+label_list = ["Form 1", "Form 2", "Form 3"]
 
 # # ----------------- Solve the problem -------------------
 test_from = 1
-test_end = 2
-formulation_type = [2, 3]
+test_end = 3
+formulation_type = [1, 2, 3]
 model = Dict()
 ref = Dict()
 pw_sp = Dict()
 wind = Dict()
 wind[1] = Dict("activation"=>0)
 wind[2] = Dict("activation"=>0)
+wind[3] = Dict("activation"=>0)
 for i in test_from:test_end
     ref[i], model[i], pw_sp[i] = solve_startup(dir_case_network, network_data_format,
                                 dir_case_blackstart, dir_case_result,
@@ -60,34 +61,37 @@ for i in test_from:test_end
 end
 
 # --------- retrieve results ---------
-ys_seq = get_value(model[1][:ys])
-zs_seq = get_value(model[1][:zs])
-yg_seq = get_value(model[2][:yg])
-zd_seq = get_value(model[2][:zd])
+ys_seq = get_value(model[2][:ys])
+zs_seq = get_value(model[2][:zs])
+yg_seq = get_value(model[3][:yg])
+zd_seq = get_value(model[3][:zd])
 
 # look into the startup instant
 ordered_gen = sort!(OrderedDict(ref[1][:gen])) # order the dict based on the key
 for i in keys(ordered_gen)
-    startup_instant_form_1 = findall(x->x==1, ys_seq[i])[1]
-    startup_instant_form_2 = round(Int64, yg_seq[i])
-    println("Startup instant of generator ", i, ", Formulation 1: ", startup_instant_form_1, ", Formulation 2: ", startup_instant_form_2)
+    startup_instant_form_2 = findall(x->x==1, ys_seq[i])[1]
+    startup_instant_form_3 = round(Int64, yg_seq[i])
+    println("Startup instant of generator ", i, ", Formulation 1: ", startup_instant_form_2, ", Formulation 2: ", startup_instant_form_3)
 end
 # look into the startup instant
 ordered_load = sort!(OrderedDict(ref[1][:load])) # order the dict based on the key
 for i in keys(ordered_load)
-    startup_instant_form_1 = findall(x->x==1, zs_seq[i])[1]
-    startup_instant_form_2 = round(Int64, zd_seq[i])
-    println("Startup instant of load ", i, ", Formulation 1: ", startup_instant_form_1, ", Formulation 2: ", startup_instant_form_2)
+    startup_instant_form_2 = findall(x->x==1, zs_seq[i])[1]
+    startup_instant_form_3 = round(Int64, zd_seq[i])
+    println("Startup instant of load ", i, ", Formulation 1: ", startup_instant_form_2, ", Formulation 2: ", startup_instant_form_3)
 end
 Pg_seq = Dict()
 Pg_seq[1] = get_value(model[1][:pg_total])
 Pg_seq[2] = get_value(model[2][:pg_total])
+Pg_seq[3] = get_value(model[3][:pg_total])
 Pd_seq = Dict()
 Pd_seq[1] = get_value(model[1][:pd_total])
 Pd_seq[2] = get_value(model[2][:pd_total])
+Pd_seq[3] = get_value(model[3][:pd_total])
 Pg_ind_seq = Dict()
 Pg_ind_seq[1] = get_value(model[1][:pg])
 Pg_ind_seq[2] = get_value(model[2][:pg])
+Pg_ind_seq[3] = get_value(model[3][:pg])
 
 # ------------ plot ------------
 # general plot setting
@@ -103,6 +107,7 @@ for g in keys(ordered_gen)
     fig, ax = PyPlot.subplots(figsize=fig_size)
     ax.plot(t_step:t_step:t_final, (Pg_ind_seq[1][g])*100, label="Form 1")
     ax.plot(t_step:t_step:t_final, (Pg_ind_seq[2][g])*100, label="Form 2")
+    ax.plot(t_step:t_step:t_final, (Pg_ind_seq[3][g])*100, label="Form 3")
     ax.set_title(string("Generator ",g), fontdict=Dict("fontsize"=>font_size))
     ax.legend(loc="lower right", fontsize=font_size)
     ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>font_size))
@@ -132,9 +137,8 @@ ax.xaxis.set_tick_params(labelsize=font_size)
 ax.yaxis.set_tick_params(labelsize=font_size)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_form_comp_gen.png")
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_form_comp3_gen.png")
 PyPlot.savefig(sav_dict)
-
 
 # total load capacity
 fig, ax = PyPlot.subplots(figsize=fig_size)
@@ -155,7 +159,7 @@ ax.xaxis.set_tick_params(labelsize=font_size)
 ax.yaxis.set_tick_params(labelsize=font_size)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_form_comp_load.png")
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_form_comp3_load.png")
 PyPlot.savefig(sav_dict)
 
 # PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
