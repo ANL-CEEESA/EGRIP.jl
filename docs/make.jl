@@ -12,18 +12,14 @@ makedocs(
         "Home" => "index.md",
         "Manual" => [
             "Installation" => "ch1_sec1_install.md",
-            "Problem Formulations" => "ch1_sec2_formulations.md",
-            "Advanced Algorithms" => "ch1_sec3_advanced_algorithm.md",
-            "Restoration Workflow" => "ch1_sec4_workflow.md"
+            "Tutorials" => "ch1_sec2_tutorials.md",
+            "Mathematical Model" => "ch1_sec3_formulations.md",
+            "Advanced Algorithms" => "ch1_sec4_advanced_algorithm.md",
+
         ],
         "Library" => [
         "Public Library" =>"ch2_sec1_library_public.md"
         "Internal Library" =>"ch2_sec2_library_internal.md"
-        ],
-        "Developer" =>[
-        "Development Overview"=>"ch3_sec1_development_overview.md",
-        "Code Loading"=>"ch3_sec2_dev_code_loading.md",
-        "Package Organization"=>"ch3_sec3_dev_package_org.md"
         ]
     ]
 )

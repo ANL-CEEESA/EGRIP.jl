@@ -97,7 +97,7 @@ end
 
 
 @doc raw"""
-Generator cranking constraint
+Generator cranking constraint (formulation 1)
 - Once a non-black start generator is on, that is, $y_{g,t}=1$, then it needs to absorb the cranking power for its corresponding cranking time
 - "After" the time step that this unit satisfies its cranking constraint, its power goes to zero; and from the next time step, it becomes a dispatchable generator
     - set non-black start unit generation limits based on "generator cranking constraint"
@@ -158,7 +158,76 @@ end
 
 
 @doc raw"""
-Generator cranking constraint (form 2)
+Generator cranking constraint (formulation 2)
+
+In the generator start-up sequence optimization problem, we consider the following cranking procedure
+```math
+\begin{align*}
+p_{g}(x_g,t)=\begin{cases}
+    0 & 0\le t<x_{g}\\
+    -c_{g} & x_{g}\le t < x_{g}+t_{g}^{c}\\
+    r_g(t-x_{g}-t_{g}^{c}) & x_{g}+t_{g}^{c}\leq t < x_{g}+t_{g}^{c}+t_{g}^{r}\\
+    p^{\mbox{max}} & x_{g}+t_{g}^{c}+t_{g}^{r}\leq t \leq T,
+\end{cases}
+\end{align*}
+```
+We introduce binary variables $y_{gt}$, $z_{gt}$, and $u_{gt}$ to indicate whether generator $g$ is in status of cranking, ramping, or full capacity in time period $t$, respectively. We introduce binary variable $x_{gt}$ to indicate whether generator $g$ is started in time period $t$. The formulations are implemented in function `form_gen_cranking_2`.
+- First, a NBS generator has no activity before it is started
+```math
+\begin{align*}
+&\begin{aligned}
+		(t-1)(1-x_{gt}) \ge \sum_{i=1}^{t-1}y_{gi}\quad\forall g\in G, t\in T\backslash\{1\}
+\end{aligned}\\
+&\begin{aligned}
+	(t+t^c_g-1)(1-x_{gt}) \ge \sum_{i=1}^{f(t)} z_{gi}\quad\forall g\in G, t\in T
+\end{aligned}\\
+&\begin{aligned}
+	(t+t^c_g+t^r_g-1)(1-x_{gt}) \ge \sum_{i=1}^{g(t)}u_{gi}\quad\forall g\in G, t\in T
+\end{aligned}\\
+& f(t)=\min\{|T|,t+t^c_g-1\},g(t)=\min\{|T|,t+t^c_g +t^r_g-1\}
+\end{align*}
+```
+- Second, once started, a cranking is followed
+```math
+\begin{align*}
+\sum_{i=t}^{f(t)} y_{gi}\ge x_{gt}\times\min\{|T|-t, t^c_g\}\quad \forall t\in T
+\end{align*}
+```
+- Third, once cranking is finished, a ramping is followed
+```math
+\begin{align*}
+	\label{eq_gen_ramp}
+\sum_{i=t+t^r_g-1}^{g(t)} z_{gi}\ge x_{gt}\times\min\{|T|-t, t^r_g\}\quad \forall t\in T
+\end{align*}
+```
+- Once the generator reaches to its maximum value, it should stay in this status
+```math
+\begin{align*}
+	\label{eq_gen_max}
+	u_{gt}\geq u_{gt-1}\quad \forall t\in T\backslash\{1\}
+\end{align*}
+```
+- Additionally, in each stage each generator will have one status being activated, i.e.,
+```math
+\begin{align*}
+	\label{eq_gen_one_status}
+y_{gi} + z_{gi} + u_{gi}\leq 1\quad \forall t\in T
+\end{align*}
+```
+- And there exists only one validated generator start-up moment
+```math
+\begin{align*}
+	\label{eq_gen_one_start}
+	\sum_{t\in T}x_{gt} =1\quad \forall g\in G
+\end{align*}
+```
+- We can write the generation output of unit $g$ in time period $t$ as
+```math
+\begin{align*}
+	\label{eq_gen_power}
+p_g(t) = -c_gy_{gt}+ \sum_{i=1}^t{z_{gi}r_g}
+\end{align*}
+```
 """
 function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
 
@@ -270,7 +339,59 @@ end
 
 
 @doc raw"""
-Generator cranking constraint (form 3)
+Generator cranking constraint (formulation 3)
+
+In the generator start-up sequence optimization problem, we consider the following cranking procedure
+```math
+\begin{align*}
+p_{g}(x_g,t)=\begin{cases}
+    0 & 0\le t<x_{g}\\
+    -c_{g} & x_{g}\le t < x_{g}+t_{g}^{c}\\
+    r_g(t-x_{g}-t_{g}^{c}) & x_{g}+t_{g}^{c}\leq t < x_{g}+t_{g}^{c}+t_{g}^{r}\\
+    p^{\mbox{max}} & x_{g}+t_{g}^{c}+t_{g}^{r}\leq t \leq T,
+\end{cases}
+\end{align*}
+```
+- If $t-x_{g}<0$, $p_{gt}=0$. Introduce positive large number $M$ and binary variable $a_{gt}$. Build $t - x_{g} < 0 \Leftrightarrow a_{gt}=1$ and $t - x_{g} \geq 0 \Leftrightarrow a_{gt}=0$, where $a_{gt}=1$ indicates generator $g$ is off-line.
+```math
+        \begin{align*}
+		\begin{aligned}
+			&t - x_{g}\leq M (1- a_{gt}) \\
+			&t-x_g \geq -M a_{gt} \\
+			&-M  (1- a_{gt}) \leq p_{gt}\\
+			 &p_{gt}\leq M  (1- a_{gt})
+		\end{aligned}
+        \end{align*}
+```
+- If $x_{g}\le t $ and $t < x_{g}+t_{g}^{c}$, $p_{gt}=-c_{g}$. Introduce positive large number $M$ and binary variable $b_{gt}$. Build $t < x_{g}+t_{g}^{c} \Leftrightarrow b_{gt}=1$ and $t \geq x_{g}+t_{g}^{c} \Leftrightarrow b_{gt}=0$, where $b_{gt}=1$ indicates generator $g$ is at the cranking stage.
+```math
+\begin{align*}
+		\begin{aligned}
+			&t - x_{g}- t_{g}^{c} \leq M (1- b_{gt}) \\
+			&t - x_{g}- t_{g}^{c}\geq -M b_{gt} \\
+			&-M  (1+a_{gt}- b_{gt}) \leq p_{gt} + c_{g}\\
+			& p_{gt} + c_{g}\leq M  (1+a_{gt}- b_{gt})
+		\end{aligned}
+	\end{align*}
+```
+- If $t <  x_{g}+t_{g}^{c}+t_{g}^{r}$, $p_{gt}=r_g(t-x_{g}-t_{g}^{c})$. Introduce positive large number $M$ and binary variable $c_{gt}$. Build $t < x_{g}+t_{g}^{c}+t_{g}^{r} \Leftrightarrow c_{gt}=1$ and $t \geq x_{g}+t_{g}^{c}+t_{g}^{r} \Leftrightarrow c_{gt}=0$, where $c_{gt}=1$ indicates generator $g$ is at the ramping stage.
+```math
+\begin{align*}
+		\begin{aligned}
+			&t - (x_{g}+t_{g}^{c}+t_{g}^{r}) \leq M (1- c_{gt}) \\
+			&t - (x_{g}+t_{g}^{c}+t_{g}^{r})\geq -M c_{gt} \\
+			&-M  (1+a_{gt}+ b_{gt}- c_{gt}) \leq p_{gt} - r_g(t-x_{g}-t_{g}^{c})\\
+			& p_{gt} - r_g(t-x_{g}-t_{g}^{c})\leq M  (1+a_{gt}+ b_{gt}- c_{gt})
+		\end{aligned}
+	\end{align*}
+```
+- For the last stage, we do not need to introduce new variables.
+```math
+\begin{align*}
+&-M  (a_{gt}+ b_{gt} + c_{gt}) \leq p_{gt} - p^{\mbox{max}} \\
+			& p_{gt} - p^{\mbox{max}} \leq M  (a_{gt}+ b_{gt} + c_{gt})
+\end{align*}
+```
 """
 function form_gen_cranking_3(model, ref, stages, Pcr, Tcr, Krp)
 

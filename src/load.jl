@@ -154,7 +154,47 @@ end
 
 
 @doc raw"""
-Load pickup constraint form 2 used in generator start-up problem
+Load pickup constraint (formulation 2)
+
+The load sequential actions are described below:
+```math
+\begin{align*}
+p_{d}(x_d,t)=\begin{cases}
+    0 & 0\le t < x_{d}\\
+    -p_{d} & x_{d}\le t\le T,
+\end{cases}
+\end{align*}
+```
+
+We introduce $y_{dt}$ to indicate whether load $d$ is in status of being energized and $x_{dt}$ to indicate whether the energization event of load $d$ happens in time $t$. The formulations are implemented in `form_load_logic_2`.
+- First, a load has no activity before it is picked up
+```math
+\begin{align*}
+	\label{eq_load_no_action}
+\sum_{i=1}^{t-1}y_{di} \le (t-1)(1-x_{dt})\quad \forall d\in D,t\in T\backslash\{1\}
+\end{align*}
+```
+- Second, a load is served to the end of the time horizon once it is picked up
+```math
+\begin{align*}
+	\label{eq_load_served}
+\sum_{i=t}^{|T|}y_{di} \ge (|T|-t+1)x_{dt}\quad \forall d\in D
+\end{align*}
+```
+- And there exists only one validated load energization moment
+```math
+\begin{align*}
+	\label{eq_load_one_start}
+	\sum_{t\in T}x_{gt} =1\quad \forall g\in G
+\end{align*}
+```
+- We can write the load $d$ in time period $t$ as
+```math
+\begin{align*}
+	\label{eq_load_power}
+p_d(t) = - y_{dt}p_d
+\end{align*}
+```
 """
 function form_load_logic_2(model, ref, stages)
 
@@ -191,7 +231,29 @@ end
 
 
 @doc raw"""
-Load pickup constraint form 3
+Load pickup constraint (formulation 3)
+
+The load sequential actions are described below:
+```math
+\begin{align*}
+p_{d}(x_d,t)=\begin{cases}
+    0 & 0\le t < x_{d}\\
+    -p_{d} & x_{d}\le t\le T,
+\end{cases}
+\end{align*}
+```
+
+- If $t-x_{d}<0$, $p_{dt}=0$. Introduce positive large number $M$ and binary variable $e_{dt}$. Build $t-x_{d}<0\Leftrightarrow e_{dt}=1$ and $t-x_{d}\geq 0 \Leftrightarrow e_{dt}=0$, where $e_{dt}=1$ indicates load $d$ is off-line.
+```math
+\begin{align*}
+    \begin{aligned}
+        &t - x_{d} \leq M (1- e_{dt}) \\
+        &t - x_{d} \geq -M e_{dt} \\
+        &0 \leq p_{dt} \leq M  (1- e_{dt})\\
+        &-M  e_{dt} \leq p_{dt} + p_{d} \leq M  e_{dt}\\
+    \end{aligned}
+\end{align*}
+```
 """
 function form_load_logic_3(model, ref, stages)
 
