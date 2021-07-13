@@ -11,17 +11,10 @@
 @doc raw"""
 Define generator variables
 - The definitation of variables corresponds to different formulations.
+- The default variable definition is the formulation 4, which is used in the resotoration problem
 """
-function def_var_gen(model, ref, stages, form)
-    if form == 1
-        # on-off status of gen at time t
-        @variable(model, y[keys(ref[:gen]),stages], Bin);
-        # generation variable
-        @variable(model, pg[keys(ref[:gen]),stages])
-        @variable(model, qg[keys(ref[:gen]),stages])
-        # total load at time t
-        @variable(model, pg_total[stages])
-    elseif form == 2
+function def_var_gen(model, ref, stages; form=4)
+    if form == 1   # formulation 1 in the paper
         # indicator of starting instant x_gt in the paper
         @variable(model, ys[keys(ref[:gen]),stages], Bin);
         # indicator of cranking
@@ -31,14 +24,21 @@ function def_var_gen(model, ref, stages, form)
         # indicator of Pmax
         @variable(model, yd[keys(ref[:gen]),stages], Bin);
         # generator output
-        @variable(model, pg[keys(ref[:gen]),stages])
+        @variable(model, pg[keys(ref[:gen]),stages]);
         # total generation capacity at time t
         @variable(model, pg_total[stages]);
-    elseif form == 3
+    elseif form == 2  # formulation 2 in the paper (a scenario-based cranking curve discreption)
+        # starting instant x_g in the paper (continuous value in time steps)
+        @variable(model, yg[keys(ref[:gen]),stages], Bin);
+        # generator output at time t
+        @variable(model, pg[keys(ref[:gen]),stages]);
+        # total load at time t
+        @variable(model, pg_total[stages]);
+    elseif form == 3 # formulation 3 in the paper (Big-M reformulation of cranking curve discreption)
         # starting instant x_g in the paper (continuous value in time steps)
         @variable(model, yg[keys(ref[:gen])], Int);
         # generator output
-        @variable(model, pg[keys(ref[:gen]),stages])
+        @variable(model, pg[keys(ref[:gen]),stages]);
         # supplementary binary value for the first if-then condition
         @variable(model, ag[keys(ref[:gen]),stages], Bin);
         # supplementary binary value for the second if-then condition
@@ -46,7 +46,15 @@ function def_var_gen(model, ref, stages, form)
         # supplementary binary value for the third if-then condition
         @variable(model, cg[keys(ref[:gen]),stages], Bin);
         # total load at time t
-        @variable(model, pg_total[stages])
+        @variable(model, pg_total[stages]);
+    elseif form == 4  # dispatchable generation
+        # on-off status of gen at time t
+        @variable(model, y[keys(ref[:gen]),stages], Bin);
+        # generation variable
+        @variable(model, pg[keys(ref[:gen]),stages]);
+        @variable(model, qg[keys(ref[:gen]),stages]);
+        # total load at time t
+        @variable(model, pg_total[stages]);
     end
 
     return model
@@ -97,7 +105,7 @@ end
 
 
 @doc raw"""
-Generator cranking constraint (formulation 1)
+Generator cranking constraint (formulation 4 in the generator start-up formulation and also used in the restoration)
 - Once a non-black start generator is on, that is, $y_{g,t}=1$, then it needs to absorb the cranking power for its corresponding cranking time
 - "After" the time step that this unit satisfies its cranking constraint, its power goes to zero; and from the next time step, it becomes a dispatchable generator
     - set non-black start unit generation limits based on "generator cranking constraint"
@@ -121,7 +129,7 @@ Generator cranking constraint (formulation 1)
 \end{align*}
 ```
 """
-function form_gen_cranking_1(model, ref, stages, Pcr, Tcr)
+function form_gen_cranking(model, ref, stages, Pcr, Tcr)
 
     println("Formulating generator cranking constraints")
 
@@ -158,7 +166,7 @@ end
 
 
 @doc raw"""
-Generator cranking constraint (formulation 2)
+Generator cranking constraint (formulation 1)
 
 In the generator start-up sequence optimization problem, we consider the following cranking procedure
 ```math
@@ -229,7 +237,7 @@ p_g(t) = -c_gy_{gt}+ \sum_{i=1}^t{z_{gi}r_g}
 \end{align*}
 ```
 """
-function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
+function form_gen_cranking_1(model, ref, stages, Pcr, Tcr, Krp)
 
     # calculate ramping time
     # here we use minimum power
@@ -336,6 +344,86 @@ function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
     # return variables
     return model, Trp
 end
+
+
+@doc raw"""
+Generator cranking constraint (formulation 2)
+
+In the generator start-up sequence optimization problem, we consider the following cranking procedure
+```math
+\begin{align*}
+p_{g}(x_g,t)=\begin{cases}
+    0 & 0\le t<x_{g}\\
+    -c_{g} & x_{g}\le t < x_{g}+t_{g}^{c}\\
+    r_g(t-x_{g}-t_{g}^{c}) & x_{g}+t_{g}^{c}\leq t < x_{g}+t_{g}^{c}+t_{g}^{r}\\
+    p^{\mbox{max}} & x_{g}+t_{g}^{c}+t_{g}^{r}\leq t \leq T,
+\end{cases}
+\end{align*}
+```
+Here, we can use a scenario-based idea to formulate individual generator's output $p_{gt}$ at time $t$. Let $x_{gt}\in{0,1}$ denote if
+non-black-start generator $g$ is started in time period $t$.
+- The generator's output $p_{gt}$ can be expressed as follows
+```math
+    \begin{align*}
+	\begin{aligned}
+		p_{gt} = \sum_{i=1}^{t}x_{gt}p_{g}(it)\forall t\in T
+	\end{aligned}
+    \end{align*}
+```
+Note that $p_{g}(i,t)$ is constant given $i$ and $t$.
+- The generator can only be started once, so we have
+```math
+\begin{align*}
+    \sum_{t\in T}p_{g,t}=1
+\end{align*}
+```
+"""
+function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
+
+    # calculate ramping time
+    # here we use minimum power
+    Trp = Dict()
+    for g in keys(ref[:gen])
+        Trp[g] = ceil( (ref[:gen][g]["pmax"] + Pcr[g]) / Krp[g])
+    end
+
+    println("Formulating generator cranking constraints")
+
+    for t in stages
+        for g in keys(ref[:gen])
+            t = Int(t)
+            g = Int(g)
+            # note the glabal variable issues of Julia in for loop
+            # Here we store the variables in a list and sum them after the loop
+            _pgt = []
+            for i in 1:t
+                if 0 <= t <= i - 0.1
+                    push!(_pgt, 0 * model[:yg][g,i])
+                elseif i <= t <= i + Tcr[g] - 0.1
+                    push!(_pgt, - Pcr[g] * model[:yg][g,i])
+                elseif i + Tcr[g] <= t <= i + Tcr[g] + Trp[g] - 0.1
+                    push!(_pgt, Krp[g]*(t - i - Tcr[g]) * model[:yg][g,i])
+                elseif i + Tcr[g] + Trp[g] <= t <= stages[end]
+                    push!(_pgt, ref[:gen][g]["pmax"] * model[:yg][g,i])
+                end
+            end
+            @constraint(model, model[:pg][g,t] == sum(_pgt))
+        end
+    end
+
+    # one generator can be only started once
+    for g in keys(ref[:gen])
+         @constraint(model, sum(model[:yg][Int(g),Int(t)] for t in stages) == 1)
+    end
+    # define the total generation
+    for t in stages
+        @constraint(model, model[:pg_total][Int(t)] == sum(model[:pg][Int(g),Int(t)] for g in keys(ref[:gen])))
+    end
+
+    return model, Trp
+end
+
+
 
 
 @doc raw"""

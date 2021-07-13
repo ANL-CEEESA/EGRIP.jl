@@ -12,27 +12,34 @@
 @doc raw"""
 Define load variables
 """
-function def_var_load(model, ref, stages, form)
+function def_var_load(model, ref, stages; form=4)
     if form == 1
-        # load P and Q
-        @variable(model, pl[keys(ref[:load]),stages])
-        @variable(model, ql[keys(ref[:load]),stages])
-        # total load at time t
-        @variable(model, pd_total[stages])
-    elseif form == 2
         # indicator of load status
         @variable(model, z[keys(ref[:load]),stages], Bin)
         # indicator of load restoration instant
         @variable(model, zs[keys(ref[:load]),stages], Bin);
         # total load at time t
         @variable(model, pd_total[stages])
-    elseif form == 3
+    elseif form == 2 # scenario-based formulation
+        # starting instant x_d in the paper (continuous value in time step)
+        @variable(model, zd[keys(ref[:load]), stages], Bin)
+        # individual load value at time t
+        @variable(model, pl[keys(ref[:load]),stages])
+        # total load at time t
+        @variable(model, pd_total[stages])
+    elseif form == 3 # Big-M based reformulation
         # starting instant x_d in the paper (continuous value in time step)
         @variable(model, zd[keys(ref[:load])], Int)
         # supplementary binary value for the first if-then condition
         @variable(model, ed[keys(ref[:load]),stages], Bin);
         # individual load value
         @variable(model, pl[keys(ref[:load]),stages])
+        # total load at time t
+        @variable(model, pd_total[stages])
+    elseif form == 4
+        # load P and Q
+        @variable(model, pl[keys(ref[:load]),stages])
+        @variable(model, ql[keys(ref[:load]),stages])
         # total load at time t
         @variable(model, pd_total[stages])
     end
@@ -115,45 +122,9 @@ function form_load_logic(model, ref, stages)
 end
 
 
+
 @doc raw"""
 Load pickup constraint (formulation 1)
-"""
-function form_load_logic_1(model, ref, stages)
-    println("")
-    println("Formulating load pickup constraints")
-    pl = model[:pl]
-
-    for t in stages
-        for l in keys(ref[:load])
-
-            # active power load
-            if ref[:load][l]["pd"] >= 0  # The current bus has positive active power load
-                @constraint(model, pl[l,t] >= 0)
-                @constraint(model, pl[l,t] <= ref[:load][l]["pd"])
-                if t > 1
-                    @constraint(model, pl[l,t] >= pl[l,t-1]) # no load shedding
-                end
-            else
-                @constraint(model, pl[l,t] <= 0) # The current bus has no positive active power load ?
-                @constraint(model, pl[l,t] >= ref[:load][l]["pd"])
-                if t > 1
-                    @constraint(model, pl[l,t] <= pl[l,t-1])
-                end
-            end
-        end
-    end
-
-    # define the total load
-    for t in stages
-        @constraint(model, model[:pd_total][t] == sum(model[:pl][d,t] for d in keys(ref[:load])))
-    end
-
-    return model
-end
-
-
-@doc raw"""
-Load pickup constraint (formulation 2)
 
 The load sequential actions are described below:
 ```math
@@ -195,7 +166,7 @@ p_d(t) = - y_{dt}p_d
 \end{align*}
 ```
 """
-function form_load_logic_2(model, ref, stages)
+function form_load_logic_1(model, ref, stages)
 
     println("Formulating load pickup constraints")
 
@@ -230,6 +201,70 @@ end
 
 
 @doc raw"""
+Load pickup constraint (formulation 2)
+
+The load sequential actions are described below:
+```math
+\begin{align*}
+p_{d}(x_d,t)=\begin{cases}
+    0 & 0\le t < x_{d}\\
+    -p_{d} & x_{d}\le t\le T,
+\end{cases}
+\end{align*}
+```
+We introduce $x_{dt}$ to indicate whether load $d$ is started at time period t.
+The formulations are implemented in `form_load_logic_2`.
+- The load $d$ consumption at time $t$ can be expressed as:
+```math
+\begin{align*}
+    p_{dt}=\sum_{i=1}^{t}x_{di}p_{g}(i,t)\quad \forall t\in T
+\end{align*}
+```
+- The load can only be started once
+```math
+\begin{align*}
+\sum_{t\in T}x_{dt}=1
+\end{align*}
+```
+"""
+function form_load_logic_2(model, ref, stages)
+
+    println("Formulating load pickup constraints")
+
+    # scenario-based load curve discreption
+    for t in stages
+        for d in keys(ref[:load])
+            t = Int(t)
+            d = Int(d)
+            # note the glabal variable issues of Julia in for loop
+            # Here we store the variables in a list and sum them after the loop
+            _pdt = []
+            for i in 1:t
+                if 0 <= t <= i - 0.1
+                    push!(_pdt, 0)
+                elseif i <= t <= stages[end]
+                    push!(_pdt, ref[:load][d]["pd"] * model[:zd][d,i])
+                end
+            end
+            @constraint(model, model[:pl][d,t] == sum(_pdt))
+        end
+    end
+
+    # summation of zs will be one
+    for d in keys(ref[:load])
+        @constraint(model, sum(model[:zd][d,t] for t in stages) == 1)
+    end
+
+    # total load
+    for t in stages
+        @constraint(model, model[:pd_total][t] == sum(model[:pl][d,t] for d in keys(ref[:load])))
+    end
+
+    return model
+end
+
+
+@doc raw"""
 Load pickup constraint (formulation 3)
 
 The load sequential actions are described below:
@@ -241,7 +276,6 @@ p_{d}(x_d,t)=\begin{cases}
 \end{cases}
 \end{align*}
 ```
-
 - If $t-x_{d}<0$, $p_{dt}=0$. Introduce positive large number $M$ and binary variable $e_{dt}$. Build $t-x_{d}<0\Leftrightarrow e_{dt}=1$ and $t-x_{d}\geq 0 \Leftrightarrow e_{dt}=0$, where $e_{dt}=1$ indicates load $d$ is off-line.
 ```math
 \begin{align*}
@@ -280,6 +314,44 @@ function form_load_logic_3(model, ref, stages)
     for d in keys(ref[:load])
         @constraint(model, model[:zd][d] >= 1)
         @constraint(model, model[:zd][d] <= stages[end])
+    end
+
+    # define the total load
+    for t in stages
+        @constraint(model, model[:pd_total][t] == sum(model[:pl][d,t] for d in keys(ref[:load])))
+    end
+
+    return model
+end
+
+
+@doc raw"""
+Load pickup constraint (formulation 4)
+Provide flexible load dispatch
+"""
+function form_load_logic_4(model, ref, stages)
+    println("")
+    println("Formulating load pickup constraints")
+    pl = model[:pl]
+
+    for t in stages
+        for l in keys(ref[:load])
+
+            # active power load
+            if ref[:load][l]["pd"] >= 0  # The current bus has positive active power load
+                @constraint(model, pl[l,t] >= 0)
+                @constraint(model, pl[l,t] <= ref[:load][l]["pd"])
+                if t > 1
+                    @constraint(model, pl[l,t] >= pl[l,t-1]) # no load shedding
+                end
+            else
+                @constraint(model, pl[l,t] <= 0) # The current bus has no positive active power load ?
+                @constraint(model, pl[l,t] >= ref[:load][l]["pd"])
+                if t > 1
+                    @constraint(model, pl[l,t] <= pl[l,t-1])
+                end
+            end
+        end
     end
 
     # define the total load
