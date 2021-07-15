@@ -42,7 +42,7 @@ line_colors = ["b", "r", "m", "lime", "darkorange"]
 line_markers = ["8", "s", "p", "*", "o"]
 label_list = ["W/O Wind",
                 "Wind: Sample 10, Prob 0.4",
-                "Wind:  Sample 10, Prob 0.4",
+                "Wind:  Sample 50, Prob 0.4",
                 "Wind: Sample 100, Prob 0.4",
                 "Wind: Sample 500, Prob 0.4"]
 
@@ -61,26 +61,25 @@ end
 
 # # ----------------- Solve the problem -------------------
 test_from = 2
-test_end = 2
+test_end = 5
 formulation_type = 2
-saa_mode_option = [1, 2]
+saa_mode_option = 2
 model = Dict()
 wind = Dict()
 pw_sp = Dict()
 wind[1] = Dict("activation"=>0, "violation_probability"=>0.00, "sample_number"=>0, "seed"=>1)
 wind[2] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>10, "seed"=>1)
-wind[3] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>10, "seed"=>1)
+wind[3] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>50, "seed"=>1)
 wind[4] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>100, "seed"=>1)
 wind[5] = Dict("activation"=>3, "violation_probability"=>0.40, "sample_number"=>500, "seed"=>1)
 # here we use keyword arguments
 for i in test_from:test_end
 ref, model[i], pw_sp[i] = solve_startup(dir_case_network, network_data_format,
                                 dir_case_blackstart, dir_case_result,
-                                t_final, t_step, gap, formulation_type, wind[i], wind_density; saa_mode=saa_mode_option[i])
+                                t_final, t_step, gap, formulation_type, wind[i], wind_density; saa_mode=saa_mode_option)
 end
 
 # --------- retrieve results and plotting ---------
-println("retrieve optimization results")
 Pg_seq = Dict()
 Pd_seq = Dict()
 Pw_seq = Dict()
@@ -94,60 +93,61 @@ for i in test_from:test_end
     end
 end
 
+# ======================================== plot ================================
 # # Pyplot generic setting
 using PyPlot
 PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 rcParams["font.family"] = "Arial"
 
-# # plot generator power
-# fig, ax = PyPlot.subplots(figsize=(12, 5))
-# for i in test_from:test_end
-#     ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
-#                 color=line_colors[i],
-#                 linestyle = line_style[i],
-#                 marker=line_markers[i],
-#                 linewidth=4,
-#                 markersize=4,
-#                 label=label_list[i])
-# end
-# ax.set_title("Generator Capacity", fontdict=Dict("fontsize"=>20))
-# ax.legend(loc="lower right", fontsize=20)
-# ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
-# ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
-# ax.xaxis.set_tick_params(labelsize=20)
-# ax.yaxis.set_tick_params(labelsize=20)
-# fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
-# PyPlot.show()
-# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_gen.png")
-# PyPlot.savefig(sav_dict)
-#
-# # plot load power
-# PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
-# rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-# rcParams["font.family"] = "Arial"
-# fig, ax = PyPlot.subplots(figsize=(12,5))
-# for i in test_from:test_end
-#     ax.plot(t_step:t_step:t_final, (Pd_seq[i])*100,
-#                 color=line_colors[i],
-#                 linestyle = line_style[i],
-#                 marker=line_markers[i],
-#                 linewidth=4,
-#                 markersize=4,
-#                 label=label_list[i])
-# end
-# ax.set_title("Load Trajectory", fontdict=Dict("fontsize"=>20))
-# ax.legend(loc="lower right", fontsize=20)
-# ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
-# ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
-# ax.xaxis.set_tick_params(labelsize=20)
-# ax.yaxis.set_tick_params(labelsize=20)
-# fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
-# PyPlot.show()
-# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_load.png")
-# PyPlot.savefig(sav_dict)
-#
-# # plot system available capacity
+# ----------------------------------generator power------------------------------
+fig, ax = PyPlot.subplots(figsize=(12, 5))
+for i in test_from:test_end
+    ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
+                color=line_colors[i],
+                linestyle = line_style[i],
+                marker=line_markers[i],
+                linewidth=2,
+                markersize=2,
+                label=label_list[i])
+end
+ax.set_title("Generator Capacity", fontdict=Dict("fontsize"=>20))
+ax.legend(loc="lower right", fontsize=20)
+ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
+ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
+ax.xaxis.set_tick_params(labelsize=20)
+ax.yaxis.set_tick_params(labelsize=20)
+fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+PyPlot.show()
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_gen_max_wind.png")
+PyPlot.savefig(sav_dict)
+
+# ----------------------------------load power----------------------------------
+PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
+rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
+rcParams["font.family"] = "Arial"
+fig, ax = PyPlot.subplots(figsize=(12,5))
+for i in test_from:test_end
+    ax.plot(t_step:t_step:t_final, (Pd_seq[i])*100,
+                color=line_colors[i],
+                linestyle = line_style[i],
+                marker=line_markers[i],
+                linewidth=2,
+                markersize=2,
+                label=label_list[i])
+end
+ax.set_title("Load Trajectory", fontdict=Dict("fontsize"=>20))
+ax.legend(loc="lower right", fontsize=20)
+ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
+ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
+ax.xaxis.set_tick_params(labelsize=20)
+ax.yaxis.set_tick_params(labelsize=20)
+fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+PyPlot.show()
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_load_max_wind.png")
+PyPlot.savefig(sav_dict)
+
+# # ----------------------------system available capacity-------------------------
 # PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
 # rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 # rcParams["font.family"] = "Arial"
@@ -172,67 +172,67 @@ rcParams["font.family"] = "Arial"
 # sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_cap.png")
 # PyPlot.savefig(sav_dict)
 
-# wind dispatch command
+# ----------------------------wind dispatch command-----------------------------
 wind_data_POE_WF3 = CSV.read("../../ERCOT_wind/wind_farm3_POE.csv", DataFrame)
 wind_data_POE_WF3 = convert(Matrix, wind_data)
 fig, ax = PyPlot.subplots(figsize=(12, 5))
-for i in test_from:test_end
-    if i >= 2
-        if saa_mode_option[i] == 1
-            for st in 1:wind[i]["sample_number"]
-                if value(model[i][:w][st]) > 0
-                    ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=3, alpha=0.4)
-                else
-                    ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=1.0, alpha=0.3)
-                end
-            end
-        elseif saa_mode_option[i] == 2
-            for st in 1:wind[i]["sample_number"]
-                ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=1.0, alpha=0.3)
-            end
-        end
-    end
-end
 for i in 1:size(wind_data_POE_WF3)[2]
     ax.plot(t_step:t_step:t_final, wind_data_POE_WF3[1:1:40, i], color="k", linewidth=0.5)
 end
+# for i in test_from:test_end
+#     if i >= 2
+#         if saa_mode_option == 1
+#             for st in 1:wind[i]["sample_number"]
+#                 if value(model[i][:w][st]) > 0
+#                     ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=3, alpha=0.4)
+#                 else
+#                     ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=1.0, alpha=0.3)
+#                 end
+#             end
+#         elseif saa_mode_option == 2
+#             for st in 1:wind[i]["sample_number"]
+#                 ax.plot(t_step:t_step:t_final, (pw_sp[i][st])*100, linewidth=1.0, alpha=0.2)
+#             end
+#         end
+#     end
+# end
 for i in 2:test_end
     ax.plot(t_step:t_step:t_final, (Pw_seq[i])*100,
                 color=line_colors[i],
                 linestyle = line_style[i],
                 marker=line_markers[i],
-                linewidth=4,
-                markersize=4,
+                linewidth=2,
+                markersize=2,
                 label=label_list[i])
 end
 ax.set_title("Wind Dispatch", fontdict=Dict("fontsize"=>20))
-ax.legend(loc="upper right", fontsize=20)
+ax.legend(loc="upper right", fontsize=16, ncol=2)
 ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
 ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
 ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_dispatch_10.png")
-# PyPlot.savefig(sav_dict)
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_dispatch_max_wind.png")
+PyPlot.savefig(sav_dict)
 
-# plot SAA violation scenarios
-fig, ax = PyPlot.subplots(figsize=(12, 5))
-for i in test_from:test_end
-    if i >= 2
-        for t in stages
-            ax.scatter(t, sum(w_seq[i][st][t] for st in 1:wind[i]["sample_number"]))
-        end
-    end
-end
-ax.set_title("SAA violation scenarios", fontdict=Dict("fontsize"=>20))
-ax.legend(loc="upper right", fontsize=20)
-ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
-ax.yaxis.set_label_text("Number of violations (MW)", fontdict=Dict("fontsize"=>20))
-ax.xaxis.set_tick_params(labelsize=20)
-ax.yaxis.set_tick_params(labelsize=20)
-fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
-PyPlot.show()
+# # ---------------------------SAA violation scenarios----------------------------
+# fig, ax = PyPlot.subplots(figsize=(12, 5))
+# for i in test_from:test_end
+#     if i >= 2
+#         for t in stages
+#             ax.scatter(t, sum(w_seq[i][st][t] for st in 1:wind[i]["sample_number"]))
+#         end
+#     end
+# end
+# ax.set_title("SAA violation scenarios", fontdict=Dict("fontsize"=>20))
+# ax.legend(loc="upper right", fontsize=20)
+# ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
+# ax.yaxis.set_label_text("Number of violations (MW)", fontdict=Dict("fontsize"=>20))
+# ax.xaxis.set_tick_params(labelsize=20)
+# ax.yaxis.set_tick_params(labelsize=20)
+# fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+# PyPlot.show()
 
 # # ------------------- save data into json --------------------
 # using JSON

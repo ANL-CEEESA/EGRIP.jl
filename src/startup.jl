@@ -139,6 +139,7 @@ function solve_startup(dir_case_network,
     elseif form == 2
         @objective(model, Min, sum(sum(t * model[:yg][g,t] for t in stages) for g in keys(ref[:gen])) +
                             sum(sum(t * model[:zd][d,t] for t in stages) for d in keys(ref[:load])))
+                            #  - sum(model[:pw][t] for t in stages)
     elseif form == 3
         # # option 1: min startup instant + max active power
         # # option 1 should be used with larger M (step: 1000, power: 1000)

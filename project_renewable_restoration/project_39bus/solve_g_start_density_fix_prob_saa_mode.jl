@@ -109,14 +109,14 @@ for i in keys(ordered_load)
         )
 end
 
-# ------------ plot ------------
+# ===================================== plot ===================================
 # # Pyplot generic setting
 using PyPlot
 PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 rcParams["font.family"] = "Arial"
 
-# plot generator and load in one plot
+# -------------------------- generator and load in one plot --------------------
 fig, ax = PyPlot.subplots(figsize=(12, 5))
 for i in test_from:test_end
     ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
@@ -145,7 +145,7 @@ ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
 
-# plot load status
+# ----------------------------------- load status ------------------------------
 ordered_load = sort!(OrderedDict(ref[1][:load])) # order the dict based on the key
 fig, ax = PyPlot.subplots(figsize=(12, 5))
 bin_position = 0
@@ -171,7 +171,7 @@ ax.xaxis.set_tick_params(labelsize=14)
 ax.yaxis.set_tick_params(labelsize=14)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 
-# plot generator power
+# -------------------------------generator power-------------------------------
 fig, ax = PyPlot.subplots(figsize=(12, 5))
 for i in test_from:test_end
     ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
@@ -190,10 +190,10 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_gen.png")
-PyPlot.savefig(sav_dict)
+# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_gen.png")
+# PyPlot.savefig(sav_dict)
 
-# plot load power
+# -----------------------------load power--------------------------------------
 PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
 rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
 rcParams["font.family"] = "Arial"
@@ -243,7 +243,7 @@ PyPlot.show()
 # sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_cap.png")
 # PyPlot.savefig(sav_dict)
 
-# wind dispatch command
+# ----------------------------wind dispatch command---------------------------
 wind_data_POE_WF3 = CSV.read("../../ERCOT_wind/wind_farm3_POE.csv", DataFrame)
 wind_data_POE_WF3 = convert(Matrix, wind_data)
 fig, ax = PyPlot.subplots(figsize=(12, 5))
@@ -285,7 +285,7 @@ PyPlot.show()
 # sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_dispatch_10.png")
 # PyPlot.savefig(sav_dict)
 
-# plot SAA violation scenarios
+# ------------------------------SAA violation scenarios-------------------------
 fig, ax = PyPlot.subplots(figsize=(12, 5))
 for i in test_from:test_end
     if i >= 2
