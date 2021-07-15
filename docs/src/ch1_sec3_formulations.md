@@ -7,9 +7,6 @@
 
 ## Restoration with Network Energization and Power Flow
 The problem formulations are implemented in function `solve_restoration_full`.
-```@docs
-solve_restoration_full
-```
 
 ### Sets, Parameters and Variables
 ```math
@@ -212,17 +209,13 @@ p_{d}(x_d,t)=\begin{cases}
 \end{cases}
 \end{align*}
 ```
-The formulations are implemented in function `solve_startup`.
-```@docs
-solve_startup
-```
-In `solve_startup`, there are several different formulations to solve the problem.
+The formulations are implemented in function `solve_startup`. In `solve_startup`, there are several different formulations to solve the problem.
 
 
-### Formulation A
+### Formulation 1
 
 #### Generator action logics
-We introduce binary variables $y_{gt}$, $z_{gt}$, and $u_{gt}$ to indicate whether generator $g$ is in status of cranking, ramping, or full capacity in time period $t$, respectively. We introduce binary variable $x_{gt}$ to indicate whether generator $g$ is started in time period $t$. The formulations are implemented in function `form_gen_cranking_2`.
+We introduce binary variables $y_{gt}$, $z_{gt}$, and $u_{gt}$ to indicate whether generator $g$ is in status of cranking, ramping, or full capacity in time period $t$, respectively. We introduce binary variable $x_{gt}$ to indicate whether generator $g$ is started in time period $t$. The formulations are implemented in function `form_gen_cranking_1`.
 - First, a NBS generator has no activity before it is started
 ```math
 \begin{align*}
@@ -281,7 +274,7 @@ p_g(t) = -c_gy_{gt}+ \sum_{i=1}^t{z_{gi}r_g}
 ```
 
 #### Load action logics
-Similarly, a load will undergo two stages. We introduce $y_{dt}$ to indicate whether load $d$ is in status of being energized and $x_{dt}$ to indicate whether the energization event of load $d$ happens in time $t$. The formulations are implemented in `form_load_logic_2`.
+Similarly, a load will undergo two stages. We introduce $y_{dt}$ to indicate whether load $d$ is in status of being energized and $x_{dt}$ to indicate whether the energization event of load $d$ happens in time $t$. The formulations are implemented in `form_load_logic_1`.
 - First, a load has no activity before it is picked up
 ```math
 \begin{align*}
@@ -330,7 +323,72 @@ The major constraints in restoration process is that, at any moment, the total g
 \end{align*}
 ```
 
-### Formulation B
+
+### Formulation 2
+#### Generator action logics
+The formulations are implemented in function `form_gen_cranking_2`.
+Let $p_g(t)$ represent the power output of generator $g$ in time period $t$. Note that, $p_g(t)$ depends on start time $x_g$. Once $x_g$ is known, power output in every time period can be calculated with the following formula.
+```math
+\begin{align*}
+	p_{g}(x_g,t)=\begin{cases}
+		0 & 0\le t<x_{g}\\
+		-c_{g} & x_{g}\le t<x_{g}+t_{g}^{c}\\
+		r_g(t-x_{g}-t_{g}^{c}) & x_{g}+t_{g}^{c}\le t\le x_{g}+t_{g}^{c}+t_{g}^{r}\\
+		p^{\mbox{max}} & x_{g}+t_{g}^{c}+t_{g}^{r}\le t\le T,
+	\end{cases}
+\end{align*}
+```
+where $T$ is restoration horizon. The term $-c_{g}$ indicates that generator $g$ is in the cranking status and consuming power.
+
+
+With slight abuse of notation, let $x_{gt}\in\{0,1\}, \forall g \in G, t\in T$ represent whether generator $i$ is started in time period $t$, where $G$ is the set of non-black start (NBS) generators. Therefore, the function $p_g(t)$ can be rewritten as follows:
+```math
+\begin{align*}
+	p_g(t) = \sum_{i=1}^t{x_{gi}\times p_g(i,t)}\\
+	\sum_{t\in T}x_{gt}=1.
+\end{align*}
+```
+Note that $p_g(i,t)$ is a constant.
+
+#### Load action logics
+The formulations are implemented in `form_load_logic_1`.
+A load $d_i(t)$ can be expressed similarly.
+```math
+\begin{align*}
+	p_{d}(x_d,t)=\begin{cases}
+		0 & 0\le t<x_{d}\\
+		-p_{d} & x_{d}\le t\le T,
+	\end{cases}
+\end{align*}
+```
+where $x_d$ is the pick-up time of load $d$.
+Similarly for load $d$:
+```math
+\begin{align*}
+	p_d(t) = \sum_{i=1}^t{x_{di}\times  p_d(i,t)}\\
+	\sum_{t\in T}x_{dt}=1.
+\end{align*}
+```
+
+#### Power balance constraint
+The major constraints in restoration process is that, at any moment, the total generation capacity minus loads cannot be negative, which can be expressed as follows:
+```math
+\begin{align*}
+	\sum_{i\in G}{p_i(t)} -\sum_{i\in D}{d_i(t)} \ge 0\quad \forall t\in T,
+\end{align*}
+```
+
+#### Objective
+The overall generator start-up formulations without renewable participation read as follow
+```math
+\begin{align*}
+		\min \sum_{g \in G}\sum_{t\in T}tx_{gt}+\sum_{d \in D}\sum_{t\in T}tx_{dt}\\
+\end{align*}
+```
+
+
+
+### Formulation 3
 Here we use big-M technique to express the logical conditions of the sequential generator and load actions. The formulations are implemented in function `form_gen_cranking_3`.
 
 #### Generator action logics

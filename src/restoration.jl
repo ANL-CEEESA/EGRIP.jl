@@ -1,25 +1,3 @@
-# # If we use fucntions from other un-registered modules, we need to declare them
-# # ----------------- Load modules from un-registered modules-------------------
-# # Option 1: We organize multiple scripts as a package and put include("file") in the main module
-# # Option 2: We put include("file") in the scripts needed
-# include("ReadMFile.jl")
-# include("Form.jl")
-
-# # relative or absolute import will depend on if the package is loaded in LOAD_PATH
-# using ReadMFile
-# using Form
-
-
-# ----------------- Load modules from registered package----------------
-# using LinearAlgebra
-# using JuMP
-# # using CPLEX
-# # using Gurobi
-# using DataFrames
-# using CSV
-# using JSON
-# using PowerModels
-# using DataStructures
 
 @doc raw"""
 Solve full restoration problem (The restoration problem could be partial or full restorations)
@@ -40,7 +18,7 @@ Solve full restoration problem (The restoration problem could be partial or full
     - generator status and output constraint
     - load pick-up constraint
 """
-function solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap, line_damage=nothing)
+function solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap; line_damage=nothing)
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
