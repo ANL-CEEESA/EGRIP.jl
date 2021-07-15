@@ -402,9 +402,9 @@ function form_gen_cranking_2(model, ref, stages, Pcr, Tcr, Krp)
                 elseif i <= t <= i + Tcr[g] - 0.1
                     push!(_pgt, - Pcr[g] * model[:yg][g,i])
                 elseif i + Tcr[g] <= t <= i + Tcr[g] + Trp[g] - 0.1
-                    push!(_pgt, Krp[g]*(t - i - Tcr[g]) * model[:yg][g,i])
+                    push!(_pgt, Krp[g]*(t - i - Tcr[g] + 1) * model[:yg][g,i])
                 elseif i + Tcr[g] + Trp[g] <= t <= stages[end]
-                    push!(_pgt, ref[:gen][g]["pmax"] * model[:yg][g,i])
+                    push!(_pgt, Krp[g]*Trp[g] * model[:yg][g,i])
                 end
             end
             @constraint(model, model[:pg][g,t] == sum(_pgt))
