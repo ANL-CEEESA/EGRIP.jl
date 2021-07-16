@@ -72,7 +72,8 @@ function solve_startup(dir_case_network,
     # model = Model(CPLEX.Optimizer)
     # set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
     # # Gurobi
-    model = Model(Gurobi.Optimizer)
+    model = Model(Gurobi.Optimizer, )
+    set_optimizer_attribute(model, "MIPGap", gap)
 
     # ------------Define decision variable ---------------------
     # define generator variables

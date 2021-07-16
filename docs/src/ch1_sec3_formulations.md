@@ -351,7 +351,7 @@ With slight abuse of notation, let $x_{gt}\in\{0,1\}, \forall g \in G, t\in T$ r
 Note that $p_g(i,t)$ is a constant.
 
 #### Load action logics
-The formulations are implemented in `form_load_logic_1`.
+The formulations are implemented in `form_load_logic_2`.
 A load $d_i(t)$ can be expressed similarly.
 ```math
 \begin{align*}
