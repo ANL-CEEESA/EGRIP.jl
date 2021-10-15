@@ -30,7 +30,7 @@ include("proj_utils.jl")
 dir_case_network = "case39.m"
 dir_case_blackstart = "BS_generator.csv"
 network_data_format = "matpower"
-dir_case_result = "results_startup_density/"
+dir_case_result = "results_renewable_restoration_paper/"
 t_final = 400
 t_step = 10
 gap = 0.0
@@ -142,7 +142,7 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_gen1.png")
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_gen.png")
 PyPlot.savefig(sav_dict)
 
 # ---------------------------------------load power------------------------------
@@ -167,7 +167,7 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_load1.png")
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_load.png")
 PyPlot.savefig(sav_dict)
 
 # # ---------------------------system available capacity--------------------------
@@ -239,7 +239,7 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_wind_dispatch1.png")
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_wind_dispatch.png")
 PyPlot.savefig(sav_dict)
 
 # # ------------------- save data into json --------------------

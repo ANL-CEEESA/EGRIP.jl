@@ -44,7 +44,7 @@ function solve_startup(dir_case_network,
     form,
     wind,
     wind_data=nothing;
-    saa_mode=1)
+    saa_mode=2)
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -139,9 +139,16 @@ function solve_startup(dir_case_network,
                             sum(sum(t * model[:zs][d,t] for t in stages) for d in keys(ref[:load])))
     elseif form == 2
         # can choose to max wind power or not
-        @objective(model, Min, sum(sum(t * model[:yg][g,t] for t in stages) for g in keys(ref[:gen])) +
-                            sum(sum(t * model[:zd][d,t] for t in stages) for d in keys(ref[:load])) -
-                            sum(model[:pw][t] for t in stages))
+        if wind["activation"] == 0
+            @objective(model, Min, sum(sum(t * model[:yg][g,t] for t in stages) for g in keys(ref[:gen])) +
+                                sum(sum(t * model[:zd][d,t] for t in stages) for d in keys(ref[:load]))
+                                )
+        else
+            @objective(model, Min, sum(sum(t * model[:yg][g,t] for t in stages) for g in keys(ref[:gen])) +
+                                sum(sum(t * model[:zd][d,t] for t in stages) for d in keys(ref[:load])) -
+                                sum(model[:pw][t] for t in stages)
+                                )
+        end
     elseif form == 3
         # # option 1: min startup instant + max active power
         # # option 1 should be used with larger M (step: 1000, power: 1000)

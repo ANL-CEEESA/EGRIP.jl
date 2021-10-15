@@ -29,7 +29,7 @@ include("proj_utils.jl")
 dir_case_network = "case39.m"
 dir_case_blackstart = "BS_generator.csv"
 network_data_format = "matpower"
-dir_case_result = "results_startup_density/"
+dir_case_result = "results_renewable_restoration_paper/"
 t_final = 400
 t_step = 10
 gap = 0.0
@@ -60,7 +60,7 @@ for i in 1:size(wind_data)[1]
 end
 
 # # ----------------- Solve the problem -------------------
-test_from = 2
+test_from = 1
 test_end = 5
 formulation_type = 2
 saa_mode_option = 2
@@ -119,8 +119,8 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_gen_max_wind.png")
-# PyPlot.savefig(sav_dict)
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_gen.png")
+PyPlot.savefig(sav_dict)
 
 # ----------------------------------load power----------------------------------
 PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
@@ -144,8 +144,8 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_load_max_wind.png")
-# PyPlot.savefig(sav_dict)
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_load.png")
+PyPlot.savefig(sav_dict)
 
 # # ----------------------------system available capacity-------------------------
 # PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
@@ -197,7 +197,7 @@ end
 #         end
 #     end
 # end
-for i in test_from:test_end
+for i in 2:test_end
     ax.plot(t_step:t_step:t_final, (Pw_seq[i])*100,
                 color=line_colors[i],
                 linestyle = line_style[i],
@@ -214,26 +214,26 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_dispatch_max_wind.png")
-# PyPlot.savefig(sav_dict)
+sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_prob_wind_dispatch.png")
+PyPlot.savefig(sav_dict)
 
-# # ---------------------------SAA violation scenarios----------------------------
-fig, ax = PyPlot.subplots(figsize=(12, 5))
-for i in test_from:test_end
-    if i >= 2
-        for t in stages
-            ax.scatter(t, sum(w_seq[i][st][t] for st in 1:wind[i]["sample_number"]))
-        end
-    end
-end
-ax.set_title("SAA violation scenarios", fontdict=Dict("fontsize"=>20))
-ax.legend(loc="upper right", fontsize=20)
-ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
-ax.yaxis.set_label_text("Number of violations (MW)", fontdict=Dict("fontsize"=>20))
-ax.xaxis.set_tick_params(labelsize=20)
-ax.yaxis.set_tick_params(labelsize=20)
-fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
-PyPlot.show()
+# # # ---------------------------SAA violation scenarios----------------------------
+# fig, ax = PyPlot.subplots(figsize=(12, 5))
+# for i in test_from:test_end
+#     if i >= 2
+#         for t in stages
+#             ax.scatter(t, sum(w_seq[i][st][t] for st in 1:wind[i]["sample_number"]))
+#         end
+#     end
+# end
+# ax.set_title("SAA violation scenarios", fontdict=Dict("fontsize"=>20))
+# ax.legend(loc="upper right", fontsize=20)
+# ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
+# ax.yaxis.set_label_text("Number of violations (MW)", fontdict=Dict("fontsize"=>20))
+# ax.xaxis.set_tick_params(labelsize=20)
+# ax.yaxis.set_tick_params(labelsize=20)
+# fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+# PyPlot.show()
 
 # # ------------------- save data into json --------------------
 # using JSON

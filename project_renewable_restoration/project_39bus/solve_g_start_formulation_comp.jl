@@ -26,7 +26,7 @@ include("proj_utils.jl")
 dir_case_network = "case39.m"
 dir_case_blackstart = "BS_generator.csv"
 network_data_format = "matpower"
-dir_case_result = "results_startup_form_comp/"
+dir_case_result = "results_renewable_restoration_paper/"
 t_final = 400
 t_step = 10
 gap = 0.0
@@ -115,27 +115,27 @@ rcParams["font.family"] = "Arial"
 font_size = 20
 fig_size=(12,5)
 
-# compare individual generator Trajectories
-for g in keys(ordered_gen)
-    fig, ax = PyPlot.subplots(figsize=fig_size)
-    ax.plot(t_step:t_step:t_final, (Pg_ind_seq[1][g])*100, label="Form 1", linestyle=line_style[1], color=line_colors[1])
-    ax.plot(t_step:t_step:t_final, (Pg_ind_seq[2][g])*100, label="Form 2", linestyle=line_style[2], color=line_colors[2])
-    ax.plot(t_step:t_step:t_final, (Pg_ind_seq[3][g])*100, label="Form 3", linestyle=line_style[3], color=line_colors[3])
-    ax.set_title(string("Generator ",g), fontdict=Dict("fontsize"=>font_size))
-    ax.legend(loc="lower right", fontsize=font_size)
-    ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>font_size))
-    ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>font_size))
-    ax.xaxis.set_tick_params(labelsize=font_size)
-    ax.yaxis.set_tick_params(labelsize=font_size)
-    fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
-    PyPlot.show()
-    sav_dict = string(pwd(), "/", dir_case_result, "/Gen_1_10_Form_Comp/fig_gen_",g,".png")
-    PyPlot.savefig(sav_dict)
-end
+# # compare individual generator Trajectories
+# for g in keys(ordered_gen)
+#     fig, ax = PyPlot.subplots(figsize=fig_size)
+#     ax.plot(t_step:t_step:t_final, (Pg_ind_seq[1][g])*100, label="Form 1", linestyle=line_style[1], color=line_colors[1])
+#     ax.plot(t_step:t_step:t_final, (Pg_ind_seq[2][g])*100, label="Form 2", linestyle=line_style[2], color=line_colors[2])
+#     ax.plot(t_step:t_step:t_final, (Pg_ind_seq[3][g])*100, label="Form 3", linestyle=line_style[3], color=line_colors[3])
+#     ax.set_title(string("Generator ",g), fontdict=Dict("fontsize"=>font_size))
+#     ax.legend(loc="lower right", fontsize=font_size)
+#     ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>font_size))
+#     ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>font_size))
+#     ax.xaxis.set_tick_params(labelsize=font_size)
+#     ax.yaxis.set_tick_params(labelsize=font_size)
+#     fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+#     PyPlot.show()
+#     sav_dict = string(pwd(), "/", dir_case_result, "/Gen_1_10_Form_Comp/fig_gen_",g,".png")
+#     PyPlot.savefig(sav_dict)
+# end
 
 # total generator capacity
 fig, ax = PyPlot.subplots(figsize=fig_size)
-for i in test_from:test_end
+for i in 1:2
     ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
                 color=line_colors[i],
                 linestyle = line_style[i],
@@ -158,7 +158,7 @@ PyPlot.savefig(sav_dict)
 
 # total load capacity
 fig, ax = PyPlot.subplots(figsize=fig_size)
-for i in test_from:test_end
+for i in 1:2
     ax.plot(t_step:t_step:t_final, (Pd_seq[i])*100,
                 color=line_colors[i],
                 linestyle = line_style[i],
