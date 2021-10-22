@@ -139,8 +139,6 @@ function form_gen_cranking(model, ref, stages, Pcr, Tcr)
     for t in stages
         for g in keys(ref[:gen])
             if t > Tcr[g][1] + 1
-                println(Tcr[g][1])
-                println(t - Tcr[g][1])
                 # if y has been 1 for Tcr[g], then pg >=0; else pg=-Pcr if y = 1 and pg = 0 otherwise
                 @constraint(model, model[:pg][g,t] >= -Pcr[g][1] * (model[:y][g,t] - model[:y][g, t - Tcr[g][1]]))
                 # if y has been 1 for Tcr[g], then pg <=pg_max; else pg=-Pcr if y = 1 and pg = 0 otherwise
