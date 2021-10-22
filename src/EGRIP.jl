@@ -2,7 +2,7 @@ module EGRIP
 
 using LinearAlgebra
 using JuMP
-using CPLEX
+# using CPLEX
 using Gurobi
 using DataFrames
 using CSV

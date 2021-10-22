@@ -111,8 +111,7 @@ function form_nodal(model, ref, stages)
     qg = model[:qg]
     ql = model[:ql]
 
-    println("")
-    println("formulating nodal constraints")
+    println("Formulating nodal constraints")
     for (i,j) in keys(ref[:buspairs])
         for t in stages
             # voltage constraints
@@ -149,6 +148,7 @@ function form_nodal(model, ref, stages)
 
     # nodal (bus) constraints
     for (i, bus) in ref[:bus]  # loop its keys and entries
+
         for t in stages
             bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
@@ -207,8 +207,8 @@ function form_nodal(model, ref, stages)
         end
 
         # define the initial status of non-generator bus
-        if size(ref[:bus_gens][i],1) == 0
-                @constraint(model, u[i,1] == 0)
+        if size(ref[:bus_gens][i], 1) == 0
+            @constraint(model, u[i, 1] == 0)
         end
 
     end
@@ -224,8 +224,7 @@ function enforce_damage_branch(model, ref, stages, line_damage)
 
     x = model[:x]
 
-    println("")
-    println("formulating branch damage constraints")
+    println("Formulating branch damage constraints")
     for t in stages
         for br in line_damage
             @constraint(model, x[(br[1],br[2]), t] == 0)
@@ -255,8 +254,7 @@ function form_branch(model, ref, stages)
     p = model[:p]
     q = model[:q]
 
-    println("")
-    println("formulating branch constraints")
+    println("Formulating branch constraints")
     for (i, branch) in ref[:branch]
         for t in stages
             # create indices for variables

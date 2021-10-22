@@ -82,19 +82,22 @@ y_{g,t} <= y_{g,t+1}
 ```
 """
 function form_gen_logic(model, ref, stages, nstage, Krp, Pcr)
+    println("Formulating generator operation constraints")
     for g in keys(ref[:gen])
         # generator ramping rate constraint
         for t in 1:nstage-1
-            @constraint(model, model[:pg][g,t] - model[:pg][g,t+1] >= -Krp[g])
-            @constraint(model, model[:pg][g,t] - model[:pg][g,t+1] <= Krp[g])
+            @constraint(model, model[:pg][g,t] - model[:pg][g,t+1] >= -Krp[g][1])
+            @constraint(model, model[:pg][g,t] - model[:pg][g,t+1] <= Krp[g][1])
         end
         # black-start unit is determined by the cranking power
-        if Pcr[g] == 0
+        if Pcr[g][1] == 0
             for t in stages
+                t = convert(Int, t)
                 @constraint(model, model[:y][g,t] == 1)
             end
         else
             for t in 1:nstage-1
+                t = convert(Int, t)
                 # on-line generators cannot be shut down
                 @constraint(model, model[:y][g,t] <= model[:y][g,t+1])
             end
@@ -135,19 +138,21 @@ function form_gen_cranking(model, ref, stages, Pcr, Tcr)
 
     for t in stages
         for g in keys(ref[:gen])
-            if t > Tcr[g] + 1
+            if t > Tcr[g][1] + 1
+                println(Tcr[g][1])
+                println(t - Tcr[g][1])
                 # if y has been 1 for Tcr[g], then pg >=0; else pg=-Pcr if y = 1 and pg = 0 otherwise
-                @constraint(model, model[:pg][g,t] >= -Pcr[g] * (model[:y][g,t] - model[:y][g,t-Tcr[g]]))
+                @constraint(model, model[:pg][g,t] >= -Pcr[g][1] * (model[:y][g,t] - model[:y][g, t - Tcr[g][1]]))
                 # if y has been 1 for Tcr[g], then pg <=pg_max; else pg=-Pcr if y = 1 and pg = 0 otherwise
-                @constraint(model, model[:pg][g,t] <= ref[:gen][g]["pmax"] * model[:y][g,t-Tcr[g]-1] - Pcr[g] * (model[:y][g,t] - model[:y][g,t-Tcr[g]]))
-            elseif t <= Tcr[g]
+                @constraint(model, model[:pg][g,t] <= ref[:gen][g]["pmax"] * model[:y][g,t-Tcr[g][1]-1] - Pcr[g][1] * (model[:y][g,t] - model[:y][g,t-Tcr[g][1]]))
+            elseif t <= Tcr[g][1]
                 # determine the non-black start generator power by its cranking condition
                 # with the time less than the cranking time, the generator power could only be zero or absorbing cranking power
-                @constraint(model, model[:pg][g,t] == -Pcr[g] * model[:y][g,t])
+                @constraint(model, model[:pg][g,t] == -Pcr[g][1] * model[:y][g,t])
             else
                 # if the unit is on from the first time instant, it satisfies the cranking constraint and its power becomes zero
                 # if not, it still absorbs the cranking power
-                @constraint(model, model[:pg][g,t] == -Pcr[g] * (model[:y][g,t] - model[:y][g,1]))
+                @constraint(model, model[:pg][g,t] == -Pcr[g][1] * (model[:y][g,t] - model[:y][g,1]))
             end
             # reactive power limits associated with the generator status
             @constraint(model, model[:qg][g,t] >= ref[:gen][g]["qmin"] * model[:y][g,t])

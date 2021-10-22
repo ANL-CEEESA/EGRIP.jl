@@ -32,8 +32,8 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     # Choicing different time steps is the key for testing multiple resolutions
     time_step = t_step;
     # calculate stages
-    nstage = time_final/time_step;
-    stages = 1:nstage;
+    nstage = convert(Int, time_final/time_step);
+    stages = 1:nstage; # In Julia, key 1 and 1.0 has a difference
     # Load generation data
     Pcr, Tcr, Krp = load_gen(dir_case_blackstart, ref, time_step)
 
@@ -42,20 +42,23 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
     # model = Model(solver=CplexSolver())
     # JuMP 0.19
-    model = Model(CPLEX.Optimizer)
-    set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
+    # model = Model(CPLEX.Optimizer)
+    # set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
+    model = Model(Gurobi.Optimizer)
+    set_optimizer_attribute(model, "MIPGap", gap)
 
     # ------------Define decision variable ---------------------
-    # here we use formulation 1
-    form = 1
+    println("Defining restoration variables")
     # define generator variables
-    model = def_var_gen(model, ref, stages, form)
+    model = def_var_gen(model, ref, stages; form=4)
     # define load variable
-    model = def_var_load(model, ref, stages, form)
+    model = def_var_load(model, ref, stages; form=4)
     # define flow variable
     model = def_var_flow(model, ref, stages)
+    println("Complete defining restoration variables")
 
     # ------------Define constraints ---------------------
+    println("Defining restoration constraints")
     # nodal constraint
     model = form_nodal(model, ref, stages)
 
@@ -66,10 +69,10 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     model = form_gen_logic(model, ref, stages, nstage, Krp, Pcr)
 
     # generator cranking constraint
-    model = form_gen_cranking_1(model, ref, stages, Pcr, Tcr)
+    model = form_gen_cranking(model, ref, stages, Pcr, Tcr)
 
     # load control constraint
-    model = form_load_logic_1(model, ref, stages)
+    model = form_load_logic(model, ref, stages)
 
 #     # enforce the damaged branches to be off during the whole restoration process
     if line_damage == nothing
@@ -77,41 +80,24 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     else
         model = enforce_damage_branch(model, ref, stages, line_damage)
     end
+    println("Complete defining restoration constraints")
 
-    # @constraint(model, sum(model[:y][10, t] for t in stages) >= sum(model[:y][1, t] for t in stages))
-    # @constraint(model, sum(model[:y][1, t] for t in stages) >= sum(model[:y][4, t] for t in stages))
-    # @constraint(model, sum(model[:y][1, t] for t in stages) >= sum(model[:y][5, t] for t in stages))
-    # @constraint(model, sum(model[:y][1, t] for t in stages) >= sum(model[:y][8, t] for t in stages))
-    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][2, t] for t in stages))
-    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][3, t] for t in stages))
-    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][6, t] for t in stages))
-    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][7, t] for t in stages))
-    # @constraint(model, sum(model[:y][4, t] for t in stages) >= sum(model[:y][9, t] for t in stages))
-    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][2, t] for t in stages))
-    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][3, t] for t in stages))
-    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][6, t] for t in stages))
-    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][7, t] for t in stages))
-    # @constraint(model, sum(model[:y][5, t] for t in stages) >= sum(model[:y][9, t] for t in stages))
-    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][2, t] for t in stages))
-    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][3, t] for t in stages))
-    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][6, t] for t in stages))
-    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][7, t] for t in stages))
-    # @constraint(model, sum(model[:y][8, t] for t in stages) >= sum(model[:y][9, t] for t in stages))
     #------------------- Define objectives--------------------
     ## (1) maximize the generator status
-#     @objective(model, Max, sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
+    # @objective(model, Max, sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
 
     ## (2) maximize the total load
-#     @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages))
+    # @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages))
 
     ## (3) maximize the total generator output
-#     @objective(model, Max, sum(sum(model[:pg][g, t] for g in keys(ref[:gen])) for t in stages))
+    # @objective(model, Max, sum(sum(model[:pg][g, t] for g in keys(ref[:gen])) for t in stages))
 
     ## (4) maximize both total load and generator output
-#     @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages) + sum(sum(model[:pg][g, t] for g in keys(ref[:gen])) for t in stages))
+    # @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages) + sum(sum(model[:pg][g, t] for g in keys(ref[:gen])) for t in stages))
 
      ## (5) maximize both total load and generator status
-    @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages) + sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
+    @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages) +
+                           sum(sum(model[:y][g,t]*ref[:gen][g]["pg"] for g in keys(ref[:gen])) for t in stages))
 
     #------------- Build and solve model----------------
     # buildInternalModel(model)

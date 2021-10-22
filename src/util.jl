@@ -37,14 +37,16 @@ function load_network(dir_case_network, network_data_format)
         ref[:bus_arcs] = Dict([key=>[Tuple(arc) for arc in val] for (key,val) in pairs(ref[:bus_arcs])])
         println("Complete loading network data in json format")
     elseif network_data_format == "matpower"
+        println("Loading network data in matpower format")
         # Convert data from matpower format to Julia Dict (PowerModels format)
         data0 = PowerModels.parse_file(dir_case_network)
-        ref = PowerModels.build_ref(data0)[:nw][0]
+        ref = PowerModels.build_ref(data0)[:it][:pm][:nw][0]
         println("Complete loading network data in matpower format")
     elseif network_data_format == "psse"
+        println("Loading network data in psse format")
         # Convert data from psse to Julia Dict (PowerModels format)
         data0 = PowerModels.parse_file(dir_case_network)
-        ref = PowerModels.build_ref(data0)[:nw][0]
+        ref = PowerModels.build_ref(data0)[:it][:pm][:nw][0]
         println("Complete loading network data in psse format")
     else
         println("Un-supported network data format")
@@ -57,6 +59,7 @@ end
 Load generator data with respect to restoration
 """
 function load_gen(dir_case_blackstart, ref, time_step)
+    println("Loading generator black start data")
     # time step is in section
     # Generation data will be further adjusted based on the time and resolution specifications
     bs_data = CSV.read(dir_case_blackstart, DataFrame)
@@ -67,19 +70,21 @@ function load_gen(dir_case_blackstart, ref, time_step)
     Krp = Dict()
 
     for g in keys(ref[:gen])
+        # This find index is added in case the genertor key is not from 1
+        index = findall(x->x==g,bs_data[:,1])
         # cranking power: power needed for the unit to be normally functional, unit converted into pu
-        Pcr[g] = bs_data[g,3] / ref[:baseMVA]
+        Pcr[g] = bs_data[index,3] / ref[:baseMVA]
         # cranking time: time needed for the unit to be normally functional
-        Tcr[g] = bs_data[g,4]  # in minutes
+        Tcr[g] = bs_data[index,4]  # in minutes
         # ramping rate: the unit in BS data is MW/min and converted into pu/min
-        Krp[g] = bs_data[g,5] / ref[:baseMVA]   # originally in minutes/MW and now in minutes/pu
+        Krp[g] = bs_data[index,5] / ref[:baseMVA]   # originally in minutes/MW and now in minutes/pu
     end
 
     # Adjust generator data based on time step from minute to per time step
     for g in keys(ref[:gen])
-        Tcr[g] = ceil(Tcr[g] / time_step) # cranking time: time needed for the unit to be normally functional
+        Tcr[g] = convert(Int, ceil(Tcr[g][1] / time_step)) # cranking time: time needed for the unit to be normally functional
         Krp[g] = Krp[g] * time_step # ramping rate in pu/each step
     end
-
+    println("Complete loading generator black start data")
     return Pcr, Tcr, Krp
 end
