@@ -30,8 +30,8 @@ dir_case_blackstart = "gen_black_start_data.csv"
 network_data_format = "psse"
 dir_case_result = "results/"
 t_final = 300
-t_step = 50
-gap = 0.1
+t_step = 30
+gap = 0.2
 ref, model = solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
 
 # ===============================plotting ======================================

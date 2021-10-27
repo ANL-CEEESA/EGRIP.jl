@@ -158,9 +158,10 @@ function form_nodal(model, ref, stages)
             @constraint(model, vb[i,t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-u[i,t]))
 
             # u_i >= y_i & u_{i,t} >= u_{i,t-1}
-#             for g in ref[:bus_gens][i]
-#                 @constraint(model, u[i,t] == y[g,t])  # bus on == generator on
-#             end
+            # for g in ref[:bus_gens][i]
+            #     @constraint(model, u[i,t] == y[g,t])  # bus on == generator on
+            # end
+
             if size(ref[:bus_gens][i],1) > 0
                 g = ref[:bus_gens][i][1]
                 @constraint(model, u[i,t] == y[g,t])
@@ -184,9 +185,10 @@ function form_nodal(model, ref, stages)
 
             # bus energization rule
             # for non-generator bus, there needs to be at least one connected energized line before this bus can be energyized
-#             if size(ref[:bus_gens][i],1) == 0
-#                 @constraint(model, sum(x[(ref[:branch][r[1]]["f_bus"],ref[:branch][r[1]]["t_bus"]), t] for r in ref[:bus_arcs][i]) >= u[i,t])
-#             end
+            # if size(ref[:bus_gens][i],1) == 0
+            #     @constraint(model, sum(x[(ref[:branch][r[1]]["f_bus"],ref[:branch][r[1]]["t_bus"]), t] for r in ref[:bus_arcs][i]) >= u[i,t])
+            # end
+
             if t > 1
                  if size(ref[:bus_gens][i],1) == 0
                     neighbor_buses = []
@@ -203,32 +205,14 @@ function form_nodal(model, ref, stages)
                     @constraint(model, sum(u[k,t-1] for k in neighbor_buses) >= u[i,t])
                 end
             end
-
         end
+
 
         # define the initial status of non-generator bus
         if size(ref[:bus_gens][i], 1) == 0
             @constraint(model, u[i, 1] == 0)
         end
 
-    end
-
-
-
-
-    return model
-end
-
-
-function enforce_damage_branch(model, ref, stages, line_damage)
-
-    x = model[:x]
-
-    println("Formulating branch damage constraints")
-    for t in stages
-        for br in line_damage
-            @constraint(model, x[(br[1],br[2]), t] == 0)
-        end
     end
 
     return model
@@ -303,5 +287,20 @@ function form_branch(model, ref, stages)
             @constraint(model, q_to == -(b+b_to)*(2*v_to-x[bpf_idx,t]) - (-b*tr+g*ti)/tm*c_br + (-g*tr-b*ti)/tm*(-s_br) )
         end
     end
+    return model
+end
+
+
+function enforce_damage_branch(model, ref, stages, line_damage)
+
+    x = model[:x]
+
+    println("Formulating branch damage constraints")
+    for t in stages
+        for br in line_damage
+            @constraint(model, x[(br[1],br[2]), t] == 0)
+        end
+    end
+
     return model
 end

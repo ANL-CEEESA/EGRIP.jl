@@ -38,12 +38,13 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     Pcr, Tcr, Krp = load_gen(dir_case_blackstart, ref, time_step)
 
     #----------------- Load solver ---------------
-    # JuMP 0.18
+    # ---JuMP 0.18 CPLEX---
     # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
     # model = Model(solver=CplexSolver())
-    # JuMP 0.19
+    # ---JuMP 0.19 CPLEX---
     # model = Model(CPLEX.Optimizer)
     # set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
+    # ---JuMP 0.19 Gurobi---
     model = Model(Gurobi.Optimizer)
     set_optimizer_attribute(model, "MIPGap", gap)
 

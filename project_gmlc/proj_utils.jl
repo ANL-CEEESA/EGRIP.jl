@@ -23,6 +23,7 @@ function get_value(A)
                 push!(solution_value[i], value(A[i,j]))
             end
         end
+        solution_value = sort!(OrderedDict(solution_value)) # order the dict based on the key
     else
         println("Currently does not support higher dimensional variables")
     end
