@@ -35,12 +35,17 @@ dir_case_network = "../GMLC_test_case/rts-gmlc-gic_ver1.raw"
 dir_case_component_status = "../GMLC_test_case/rts_gmlc_gic_mods_PT.json"
 network_data_format = "psse"
 dir_case_result = "results_load_pickup/"
-t_final = 22
+t_final = 25
 t_step = 1
-gap = 0.1
+gap = 0.2
 stages = 1:t_step:t_final
+# load load pickup priority
+load_priority_data = Dict()
+load_priority_data = JSON.parsefile("load_pickup_priority.json")  # parse and transform data
 
-ref, model = solve_load_pickup(dir_case_network, network_data_format, dir_case_component_status, dir_case_result, t_final, t_step, gap)
+# solve the problem
+ref, model = solve_load_pickup(dir_case_network, network_data_format, dir_case_component_status, dir_case_result, t_final, t_step, gap;
+                                solver="gurobi", load_priority=load_priority_data)
 
 # verify total load
 total_load = sum(ref[:load][d]["pd"] for d in keys(ref[:load]))

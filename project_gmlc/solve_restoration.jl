@@ -32,7 +32,8 @@ dir_case_result = "results_system_restoration//"
 t_final = 300
 t_step = 30
 gap = 0.2
-ref, model = solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
+ref, model = solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap;
+                                    solver="gurobi")
 
 # ===============================plotting ======================================
 # # ---------------- local functions ---------------

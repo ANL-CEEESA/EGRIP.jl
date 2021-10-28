@@ -1,5 +1,5 @@
 
-function solve_load_pickup(dir_case_network, network_data_format, dir_repair, dir_case_result, t_final, t_step, gap)
+function solve_load_pickup(dir_case_network, network_data_format, dir_repair, dir_case_result, t_final, t_step, gap; solver="gurobi", load_priority=nothing)
     # load network data
     ref = load_network(dir_case_network, network_data_format)
     # Count numbers and generate iterators
@@ -20,15 +20,19 @@ function solve_load_pickup(dir_case_network, network_data_format, dir_repair, di
     component_status = JSON.parsefile(dir_repair)
 
     #----------------- Load solver ---------------
-    # ---JuMP 0.18 CPLEX---
+    # ---JuMP 0.18 ---
     # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
     # model = Model(solver=CplexSolver())
-    # ---JuMP 0.19 CPLEX---
-    # model = Model(CPLEX.Optimizer)
-    # set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
-    # ---JuMP 0.19 Gurobi---
-    model = Model(Gurobi.Optimizer)
-    set_optimizer_attribute(model, "MIPGap", gap)
+    # ---JuMP 0.19 ---
+    if solver == "cplex"
+        model = Model(CPLEX.Optimizer)
+        set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
+    elseif solver == "gurobi"
+        model = Model(Gurobi.Optimizer)
+        set_optimizer_attribute(model, "MIPGap", gap)
+    else
+        println("Solver not avaliable")
+    end
 
     # ------------Define decision variable ---------------------
     println("Defining restoration variables")
@@ -80,7 +84,11 @@ function solve_load_pickup(dir_case_network, network_data_format, dir_repair, di
     model = form_load_logic(model, ref, stages)
 
     # -------- objective----------
-    @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages))
+    if load_priority == nothing
+        @objective(model, Max, sum(sum(model[:pl][d, t] for d in keys(ref[:load])) for t in stages))
+    else
+        @objective(model, Max, sum(sum(model[:pl][d, t] * load_priority[string(d)] for d in keys(ref[:load])) for t in stages))
+    end
 
     # -------- solve problem ---------
     optimize!(model)

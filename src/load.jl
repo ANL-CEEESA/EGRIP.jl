@@ -66,7 +66,6 @@ Load pickup constraint used for full restoration problem
 ```
 """
 function form_load_logic(model, ref, stages)
-    println("")
     println("Formulating load pickup constraints")
     pl = model[:pl]
     ql = model[:ql]

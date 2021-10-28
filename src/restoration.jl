@@ -18,7 +18,7 @@ Solve full restoration problem (The restoration problem could be partial or full
     - generator status and output constraint
     - load pick-up constraint
 """
-function solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap; line_damage=nothing)
+function solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap; solver="gurobi", line_damage=nothing)
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -38,15 +38,19 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     Pcr, Tcr, Krp = load_gen(dir_case_blackstart, ref, time_step)
 
     #----------------- Load solver ---------------
-    # ---JuMP 0.18 CPLEX---
+    # ---JuMP 0.18 ---
     # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
     # model = Model(solver=CplexSolver())
-    # ---JuMP 0.19 CPLEX---
-    # model = Model(CPLEX.Optimizer)
-    # set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
-    # ---JuMP 0.19 Gurobi---
-    model = Model(Gurobi.Optimizer)
-    set_optimizer_attribute(model, "MIPGap", gap)
+    # ---JuMP 0.19 ---
+    if solver == "cplex"
+        model = Model(CPLEX.Optimizer)
+        set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
+    elseif solver == "gurobi"
+        model = Model(Gurobi.Optimizer)
+        set_optimizer_attribute(model, "MIPGap", gap)
+    else
+        println("Solver not avaliable")
+    end
 
     # ------------Define decision variable ---------------------
     println("Defining restoration variables")

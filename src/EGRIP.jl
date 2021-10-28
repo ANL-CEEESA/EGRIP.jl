@@ -2,8 +2,6 @@ module EGRIP
 
 using LinearAlgebra
 using JuMP
-# using CPLEX
-using Gurobi
 using DataFrames
 using CSV
 using JSON
@@ -13,6 +11,8 @@ using Distributions
 using DataStructures # for OrderedDict
 using Interpolations
 using StatsBase
+# using CPLEX
+using Gurobi
 
 include("restoration.jl")
 include("refine.jl")

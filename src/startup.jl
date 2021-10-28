@@ -1,12 +1,3 @@
-# ----------------- Load modules from registered package----------------
-# using LinearAlgebra
-# using JuMP
-# # using CPLEX
-# # using Gurobi
-# using DataFrames
-# using CSV
-# using JSON
-# using PowerModels
 
 @doc raw"""
 Solve generator start-up problem
@@ -44,7 +35,7 @@ function solve_startup(dir_case_network,
     form,
     wind,
     wind_data=nothing;
-    saa_mode=2)
+    saa_mode=2, solver="gurobi")
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -64,16 +55,19 @@ function solve_startup(dir_case_network,
     Pcr, Tcr, Krp = load_gen(dir_case_blackstart, ref, time_step)
 
     #----------------- Load solver ---------------
-    # JuMP 0.18
+    # ---JuMP 0.18 ---
     # model = Model(solver=CplexSolver(CPX_PARAM_EPGAP = 0.05))
     # model = Model(solver=CplexSolver())
-    # JuMP 0.19
-    # # CPLEX
-    # model = Model(CPLEX.Optimizer)
-    # set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
-    # # Gurobi
-    model = Model(Gurobi.Optimizer, )
-    set_optimizer_attribute(model, "MIPGap", gap)
+    # ---JuMP 0.19 ---
+    if solver == "cplex"
+        model = Model(CPLEX.Optimizer)
+        set_optimizer_attribute(model, "CPX_PARAM_EPGAP", gap)
+    elseif solver == "gurobi"
+        model = Model(Gurobi.Optimizer)
+        set_optimizer_attribute(model, "MIPGap", gap)
+    else
+        println("Solver not avaliable")
+    end
 
     # ------------Define decision variable ---------------------
     # define generator variables
