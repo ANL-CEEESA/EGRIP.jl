@@ -25,10 +25,10 @@ using Distributions
 using DataStructures
 
 # # ------------ Load data --------------
-dir_case_network = "../GMLC_test_case/rts-gmlc-gic.raw"
+dir_case_network = "../GMLC_test_case/rts-gmlc-gic_ver1.raw"
 dir_case_blackstart = "gen_black_start_data.csv"
 network_data_format = "psse"
-dir_case_result = "results/"
+dir_case_result = "results_system_restoration//"
 t_final = 300
 t_step = 30
 gap = 0.2

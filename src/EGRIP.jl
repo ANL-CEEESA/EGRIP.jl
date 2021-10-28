@@ -23,12 +23,14 @@ include("gen.jl")
 include("load.jl")
 include("renewable.jl")
 include("util.jl")
+include("load_pickup.jl")
 
 # we are currently relying on the IO function of PowerModels's
 # include("parser.jl")
 
 export solve_restoration_full
 export solve_restoration_part
+export solve_load_pickup
 export solve_refined_restoration
 export solve_section
 export solve_startup

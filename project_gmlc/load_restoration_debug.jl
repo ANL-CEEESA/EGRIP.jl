@@ -57,7 +57,7 @@ set_optimizer_attribute(model, "MIPGap", gap)
 
 # make stages
 #TODO: maybe read the outage data and determine the maximum days to be considered
-stages = 1:30 # here the unit is day
+stages = 1:22 # here the unit is day
 
 # =====================================Define decision variable =====================================
 println("Defining restoration variables")
@@ -106,165 +106,170 @@ end
 
 # # ===================================== network constraints =====================================
 
-vl = model[:vl]
-vb = model[:vb]
-v = model[:v]
-x = model[:x]
-y = model[:y]
-a = model[:a]
-al = model[:al]
-u = model[:u]
-p = model[:p]
-q = model[:q]
-pg = model[:pg]
-pl = model[:pl]
-qg = model[:qg]
-ql = model[:ql]
+model = EGRIP.form_nodal(model, ref, stages)
 
-println("Formulating nodal constraints")
-for (i,j) in keys(ref[:buspairs])
-    for t in stages
-        # voltage constraints
-        # voltage constraints are only activated if the associated line is energized
-        @constraint(model, vl[(i,j),t] >= ref[:bus][i]["vmin"]*x[(i,j),t])
-        @constraint(model, vl[(i,j),t] <= ref[:bus][i]["vmax"]*x[(i,j),t])
-        @constraint(model, vl[(j,i),t] >= ref[:bus][j]["vmin"]*x[(i,j),t])
-        @constraint(model, vl[(j,i),t] <= ref[:bus][j]["vmax"]*x[(i,j),t])
-        @constraint(model, vl[(i,j),t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-x[(i,j),t]))
-        @constraint(model, vl[(i,j),t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-x[(i,j),t]))
-        @constraint(model, vl[(j,i),t] >= v[j,t] - ref[:bus][j]["vmax"]*(1-x[(i,j),t]))
-        @constraint(model, vl[(j,i),t] <= v[j,t] - ref[:bus][j]["vmin"]*(1-x[(i,j),t]))
+# vl = model[:vl]
+# vb = model[:vb]
+# v = model[:v]
+# x = model[:x]
+# y = model[:y]
+# a = model[:a]
+# al = model[:al]
+# u = model[:u]
+# p = model[:p]
+# q = model[:q]
+# pg = model[:pg]
+# pl = model[:pl]
+# qg = model[:qg]
+# ql = model[:ql]
+#
+# println("Formulating nodal constraints")
+# for (i,j) in keys(ref[:buspairs])
+#     for t in stages
+#         # voltage constraints
+#         # voltage constraints are only activated if the associated line is energized
+#         @constraint(model, vl[(i,j),t] >= ref[:bus][i]["vmin"]*x[(i,j),t])
+#         @constraint(model, vl[(i,j),t] <= ref[:bus][i]["vmax"]*x[(i,j),t])
+#         @constraint(model, vl[(j,i),t] >= ref[:bus][j]["vmin"]*x[(i,j),t])
+#         @constraint(model, vl[(j,i),t] <= ref[:bus][j]["vmax"]*x[(i,j),t])
+#         @constraint(model, vl[(i,j),t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-x[(i,j),t]))
+#         @constraint(model, vl[(i,j),t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-x[(i,j),t]))
+#         @constraint(model, vl[(j,i),t] >= v[j,t] - ref[:bus][j]["vmax"]*(1-x[(i,j),t]))
+#         @constraint(model, vl[(j,i),t] <= v[j,t] - ref[:bus][j]["vmin"]*(1-x[(i,j),t]))
+#
+#         # angle difference constraints
+#         # angle difference constraints are only activated if the associated line is energized
+#         @constraint(model, a[i,t] - a[j,t] >= ref[:buspairs][(i,j)]["angmin"])
+#         @constraint(model, a[i,t] - a[j,t] <= ref[:buspairs][(i,j)]["angmax"])
+#         @constraint(model, al[(i,j),t] - al[(j,i),t] >= ref[:buspairs][(i,j)]["angmin"]*x[(i,j),t])
+#         @constraint(model, al[(i,j),t] - al[(j,i),t] <= ref[:buspairs][(i,j)]["angmax"]*x[(i,j),t])
+#         @constraint(model, al[(i,j),t] - al[(j,i),t] >= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmax"]*(1-x[(i,j),t]))
+#         @constraint(model, al[(i,j),t] - al[(j,i),t] <= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmin"]*(1-x[(i,j),t]))
+#
+#         # energized line cannot be shut down
+#         if t > 1
+#             @constraint(model, x[(i,j), t] >= x[(i,j), t-1])
+#         end
+#
+#         # line energization rules
+#         @constraint(model, u[i,t] + u[j,t] >= x[(i,j),t])
+#
+#     end
+# end
 
-        # angle difference constraints
-        # angle difference constraints are only activated if the associated line is energized
-        @constraint(model, a[i,t] - a[j,t] >= ref[:buspairs][(i,j)]["angmin"])
-        @constraint(model, a[i,t] - a[j,t] <= ref[:buspairs][(i,j)]["angmax"])
-        @constraint(model, al[(i,j),t] - al[(j,i),t] >= ref[:buspairs][(i,j)]["angmin"]*x[(i,j),t])
-        @constraint(model, al[(i,j),t] - al[(j,i),t] <= ref[:buspairs][(i,j)]["angmax"]*x[(i,j),t])
-        @constraint(model, al[(i,j),t] - al[(j,i),t] >= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmax"]*(1-x[(i,j),t]))
-        @constraint(model, al[(i,j),t] - al[(j,i),t] <= a[i,t] - a[j,t] - ref[:buspairs][(i,j)]["angmin"]*(1-x[(i,j),t]))
-
-        # energized line cannot be shut down
-        if t > 1
-            @constraint(model, x[(i,j), t] >= x[(i,j), t-1])
-        end
-
-        # line energization rules
-        @constraint(model, u[i,t] + u[j,t] >= x[(i,j),t])
-
-    end
-end
-
-
-# nodal (bus) constraints
-for (i, bus) in ref[:bus]  # loop its keys and entries
-
-    for t in stages
-        bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
-
-        @constraint(model, vb[i,t] >= ref[:bus][i]["vmin"]*u[i,t])
-        @constraint(model, vb[i,t] <= ref[:bus][i]["vmax"]*u[i,t])
-        @constraint(model, vb[i,t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-u[i,t]))
-        @constraint(model, vb[i,t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-u[i,t]))
-
-        # u_i >= y_i & u_{i,t} >= u_{i,t-1}
-        # for g in ref[:bus_gens][i]
-        #     @constraint(model, u[i,t] == y[g,t])  # bus on == generator on
-        # end
-
-        if size(ref[:bus_gens][i],1) > 0
-            g = ref[:bus_gens][i][1]
-            @constraint(model, u[i,t] == y[g,t])
-        end
-
-        # Bus KCL
-        # Nodal power balance constraint
-        @constraint(model, sum(p[a,t] for a in ref[:bus_arcs][i]) ==
-            sum(pg[g,t] for g in ref[:bus_gens][i]) -
-            sum(pl[l,t] for l in ref[:bus_loads][i]) -
-            sum(shunt["gs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
-        @constraint(model, sum(q[a,t] for a in ref[:bus_arcs][i]) ==
-            sum(qg[g,t] for g in ref[:bus_gens][i]) -
-            sum(ql[l,t] for l in ref[:bus_loads][i]) +
-            sum(shunt["bs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
-
-    end
-end
+# # nodal (bus) constraints
+# for (i, bus) in ref[:bus]  # loop its keys and entries
+#
+#     for t in stages
+#         bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
+#
+#         @constraint(model, vb[i,t] >= ref[:bus][i]["vmin"]*u[i,t])
+#         @constraint(model, vb[i,t] <= ref[:bus][i]["vmax"]*u[i,t])
+#         @constraint(model, vb[i,t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-u[i,t]))
+#         @constraint(model, vb[i,t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-u[i,t]))
+#
+#         # u_i >= y_i & u_{i,t} >= u_{i,t-1}
+#         # for g in ref[:bus_gens][i]
+#         #     @constraint(model, u[i,t] == y[g,t])  # bus on == generator on
+#         # end
+#
+#         if size(ref[:bus_gens][i],1) > 0
+#             g = ref[:bus_gens][i][1]
+#             @constraint(model, u[i,t] == y[g,t])
+#         end
+#
+#         # Bus KCL
+#         # Nodal power balance constraint
+#         @constraint(model, sum(p[a,t] for a in ref[:bus_arcs][i]) ==
+#             sum(pg[g,t] for g in ref[:bus_gens][i]) -
+#             sum(pl[l,t] for l in ref[:bus_loads][i]) -
+#             sum(shunt["gs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
+#         @constraint(model, sum(q[a,t] for a in ref[:bus_arcs][i]) ==
+#             sum(qg[g,t] for g in ref[:bus_gens][i]) -
+#             sum(ql[l,t] for l in ref[:bus_loads][i]) +
+#             sum(shunt["bs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
+#
+#     end
+# end
 
 
-vl = model[:vl]
-al = model[:al]
-x = model[:x]
-u = model[:u]
-p = model[:p]
-q = model[:q]
+model = EGRIP.form_branch(model, ref, stages)
 
-println("Formulating branch constraints")
-for (i, branch) in ref[:branch]
-    for t in stages
-        # create indices for variables
-        f_idx = (i, branch["f_bus"], branch["t_bus"])
-        t_idx = (i, branch["t_bus"], branch["f_bus"])
-        bpf_idx = (branch["f_bus"], branch["t_bus"])
-        bpt_idx = (branch["t_bus"], branch["f_bus"])
-        # get indexed power flow
-        p_fr = p[f_idx,t]
-        q_fr = q[f_idx,t]
-        p_to = p[t_idx,t]
-        q_to = q[t_idx,t]
-        # get indexed voltage
-        v_fr = vl[bpf_idx,t]
-        v_to = vl[bpt_idx,t]
-        c_br = vl[bpf_idx,t] + vl[bpt_idx,t] - x[bpf_idx,t]
-        s_br = al[bpt_idx,t] - al[bpf_idx,t]
-        u_fr = u[branch["f_bus"],t]
-        u_to = u[branch["t_bus"],t]
-
-        # get line parameters
-        ybus = pinv(branch["br_r"] + im * branch["br_x"])
-        g, b = real(ybus), imag(ybus)
-        g_fr = branch["g_fr"]
-        b_fr = branch["b_fr"]
-        g_to = branch["g_to"]
-        b_to = branch["b_to"]
-        # tap changer related computation
-        tap_ratio = branch["tap"]
-        angle_shift = branch["shift"]
-        tr, ti = tap_ratio * cos(angle_shift), tap_ratio * sin(angle_shift)
-        tm = tap_ratio^2
-
-        # AC Line Flow Constraints
-        @constraint(model, p_fr ==  (g+g_fr)/tm*(2*v_fr-x[bpf_idx,t]) + (-g*tr+b*ti)/tm*c_br + (-b*tr-g*ti)/tm*s_br)
-        @constraint(model, q_fr == -(b+b_fr)/tm*(2*v_fr-x[bpf_idx,t]) - (-b*tr-g*ti)/tm*c_br + (-g*tr+b*ti)/tm*s_br)
-
-        @constraint(model, p_to ==  (g+g_to)*(2*v_to-x[bpf_idx,t]) + (-g*tr-b*ti)/tm*c_br + (-b*tr+g*ti)/tm*(-s_br) )
-        @constraint(model, q_to == -(b+b_to)*(2*v_to-x[bpf_idx,t]) - (-b*tr+g*ti)/tm*c_br + (-g*tr-b*ti)/tm*(-s_br) )
-    end
-end
+# vl = model[:vl]
+# al = model[:al]
+# x = model[:x]
+# u = model[:u]
+# p = model[:p]
+# q = model[:q]
+#
+# println("Formulating branch constraints")
+# for (i, branch) in ref[:branch]
+#     for t in stages
+#         # create indices for variables
+#         f_idx = (i, branch["f_bus"], branch["t_bus"])
+#         t_idx = (i, branch["t_bus"], branch["f_bus"])
+#         bpf_idx = (branch["f_bus"], branch["t_bus"])
+#         bpt_idx = (branch["t_bus"], branch["f_bus"])
+#         # get indexed power flow
+#         p_fr = p[f_idx,t]
+#         q_fr = q[f_idx,t]
+#         p_to = p[t_idx,t]
+#         q_to = q[t_idx,t]
+#         # get indexed voltage
+#         v_fr = vl[bpf_idx,t]
+#         v_to = vl[bpt_idx,t]
+#         c_br = vl[bpf_idx,t] + vl[bpt_idx,t] - x[bpf_idx,t]
+#         s_br = al[bpt_idx,t] - al[bpf_idx,t]
+#         u_fr = u[branch["f_bus"],t]
+#         u_to = u[branch["t_bus"],t]
+#
+#         # get line parameters
+#         ybus = pinv(branch["br_r"] + im * branch["br_x"])
+#         g, b = real(ybus), imag(ybus)
+#         g_fr = branch["g_fr"]
+#         b_fr = branch["b_fr"]
+#         g_to = branch["g_to"]
+#         b_to = branch["b_to"]
+#         # tap changer related computation
+#         tap_ratio = branch["tap"]
+#         angle_shift = branch["shift"]
+#         tr, ti = tap_ratio * cos(angle_shift), tap_ratio * sin(angle_shift)
+#         tm = tap_ratio^2
+#
+#         # AC Line Flow Constraints
+#         @constraint(model, p_fr ==  (g+g_fr)/tm*(2*v_fr-x[bpf_idx,t]) + (-g*tr+b*ti)/tm*c_br + (-b*tr-g*ti)/tm*s_br)
+#         @constraint(model, q_fr == -(b+b_fr)/tm*(2*v_fr-x[bpf_idx,t]) - (-b*tr-g*ti)/tm*c_br + (-g*tr+b*ti)/tm*s_br)
+#
+#         @constraint(model, p_to ==  (g+g_to)*(2*v_to-x[bpf_idx,t]) + (-g*tr-b*ti)/tm*c_br + (-b*tr+g*ti)/tm*(-s_br) )
+#         @constraint(model, q_to == -(b+b_to)*(2*v_to-x[bpf_idx,t]) - (-b*tr+g*ti)/tm*c_br + (-g*tr-b*ti)/tm*(-s_br) )
+#     end
+# end
 
 
 # ===================================== load constraints =====================================
-for t in stages
-    for l in keys(ref[:load])
-        # active power load
-        if ref[:load][l]["pd"] >= 0  # The current bus has positive active power load
-            @constraint(model, model[:pl][l,t] >= 0)
-            @constraint(model, model[:pl][l,t] <= ref[:load][l]["pd"] * model[:u][ref[:load][l]["load_bus"],t])
-        else
-            @constraint(model, model[:pl][l,t] <= 0) # The current bus has negative active power load
-            @constraint(model, model[:pl][l,t] >= ref[:load][l]["pd"] * model[:u][ref[:load][l]["load_bus"],t])
-        end
+model = EGRIP.form_load_logic(model, ref, stages)
 
-        # reactive power load
-        if ref[:load][l]["qd"] >= 0
-            @constraint(model, model[:ql][l,t] >= 0)
-            @constraint(model, model[:ql][l,t] <= ref[:load][l]["qd"] * model[:u][ref[:load][l]["load_bus"],t])
-        else
-            @constraint(model, model[:ql][l,t] <= 0)
-            @constraint(model, model[:ql][l,t] >= ref[:load][l]["qd"] * model[:u][ref[:load][l]["load_bus"],t])
-        end
-    end
-end
+# for t in stages
+#     for l in keys(ref[:load])
+#         # active power load
+#         if ref[:load][l]["pd"] >= 0  # The current bus has positive active power load
+#             @constraint(model, model[:pl][l,t] >= 0)
+#             @constraint(model, model[:pl][l,t] <= ref[:load][l]["pd"] * model[:u][ref[:load][l]["load_bus"],t])
+#         else
+#             @constraint(model, model[:pl][l,t] <= 0) # The current bus has negative active power load
+#             @constraint(model, model[:pl][l,t] >= ref[:load][l]["pd"] * model[:u][ref[:load][l]["load_bus"],t])
+#         end
+#
+#         # reactive power load
+#         if ref[:load][l]["qd"] >= 0
+#             @constraint(model, model[:ql][l,t] >= 0)
+#             @constraint(model, model[:ql][l,t] <= ref[:load][l]["qd"] * model[:u][ref[:load][l]["load_bus"],t])
+#         else
+#             @constraint(model, model[:ql][l,t] <= 0)
+#             @constraint(model, model[:ql][l,t] >= ref[:load][l]["qd"] * model[:u][ref[:load][l]["load_bus"],t])
+#         end
+#     end
+# end
 
 
 # =====================================Objective=====================================
@@ -361,7 +366,6 @@ for (i, entry) in sort!(OrderedDict(ref[:load]))
         println(resultfile, " ")
 end
 close(resultfile)
-
 
 
 # verify total load

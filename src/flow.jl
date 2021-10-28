@@ -148,7 +148,6 @@ function form_nodal(model, ref, stages)
 
     # nodal (bus) constraints
     for (i, bus) in ref[:bus]  # loop its keys and entries
-
         for t in stages
             bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
@@ -182,13 +181,34 @@ function form_nodal(model, ref, stages)
                 sum(qg[g,t] for g in ref[:bus_gens][i]) -
                 sum(ql[l,t] for l in ref[:bus_loads][i]) +
                 sum(shunt["bs"] for shunt in bus_shunts)*(2*vb[i,t] - u[i,t]))
+        end
+    end
 
-            # bus energization rule
-            # for non-generator bus, there needs to be at least one connected energized line before this bus can be energyized
-            # if size(ref[:bus_gens][i],1) == 0
-            #     @constraint(model, sum(x[(ref[:branch][r[1]]["f_bus"],ref[:branch][r[1]]["t_bus"]), t] for r in ref[:bus_arcs][i]) >= u[i,t])
-            # end
+    return model
+end
 
+
+function initial_gen_bus(model, ref, stages)
+    for (i, bus) in ref[:bus]  # loop its keys and entries
+        # define the initial status of non-generator bus
+        if size(ref[:bus_gens][i], 1) == 0
+            @constraint(model, model[:u][i, 1] == 0)
+        end
+    end
+
+    return model
+end
+
+
+function bus_energization_rule(model, ref, stages)
+    # bus energization rule
+    # for non-generator bus, there needs to be at least one connected energized line before this bus can be energyized
+    # if size(ref[:bus_gens][i],1) == 0
+    #     @constraint(model, sum(x[(ref[:branch][r[1]]["f_bus"],ref[:branch][r[1]]["t_bus"]), t] for r in ref[:bus_arcs][i]) >= u[i,t])
+    # end
+    # nodal (bus) constraints
+    for (i, bus) in ref[:bus]  # loop its keys and entries
+        for t in stages
             if t > 1
                  if size(ref[:bus_gens][i],1) == 0
                     neighbor_buses = []
@@ -202,17 +222,10 @@ function form_nodal(model, ref, stages)
                         end
                     end
                     # add constraints
-                    @constraint(model, sum(u[k,t-1] for k in neighbor_buses) >= u[i,t])
+                    @constraint(model, sum(model[:u][k,t-1] for k in neighbor_buses) >= model[:u][i,t])
                 end
             end
         end
-
-
-        # define the initial status of non-generator bus
-        if size(ref[:bus_gens][i], 1) == 0
-            @constraint(model, u[i, 1] == 0)
-        end
-
     end
 
     return model

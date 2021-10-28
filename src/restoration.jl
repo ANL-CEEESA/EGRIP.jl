@@ -27,10 +27,10 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     nload = length(keys(ref[:load]));
     # Set time and resolution specifications
     # The final time selection should be complied with restoration time requirement.
-    time_final = t_final;
+    time_final = convert(Int, t_final);
     time_series = 1:t_final;
     # Choicing different time steps is the key for testing multiple resolutions
-    time_step = t_step;
+    time_step = convert(Int, t_step);
     # calculate stages
     nstage = convert(Int, time_final/time_step);
     stages = 1:nstage; # In Julia, key 1 and 1.0 has a difference
@@ -75,7 +75,13 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     # load control constraint
     model = form_load_logic(model, ref, stages)
 
-#     # enforce the damaged branches to be off during the whole restoration process
+    # initial status of gen bus
+    model = initial_gen_bus(model, ref, stages)
+
+    # bus energization heuristic
+    model = bus_energization_rule(model, ref, stages)
+
+    # enforce the damaged branches to be off during the whole restoration process
     if line_damage == nothing
         println("No line damage data")
     else
@@ -489,7 +495,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
                 for t in time_series
                     if t<time_final
                        # Determine which stages should the current time instant be
-                        stage_index = ceil(t/time_step)
+                        stage_index = convert(Int, ceil(t/time_step))
                         # Determine if the current generator has a changing scenario
                         if i in keys(CP[:y])
                             # check if the current stage is the changing stage
@@ -507,7 +513,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
                         end
                     else
                         # Determine which stages should the current time instant be
-                        stage_index = ceil(t/time_step)
+                        stage_index = convert(Int, ceil(t/time_step))
                         print(resultfile, Int(round(value(model[:y][i,stage_index]))))
                     end
                 end
@@ -535,12 +541,12 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
                 for t in time_series
                     if t<time_final
                         # Determine which stages should the current time instant be
-                        stage_index = ceil(t/time_step)
+                        stage_index = convert(Int, ceil(t/time_step))
                         print(resultfile, round(value(model[:pg][i,stage_index])*100))
                         print(resultfile, ", ")
                     else
                         # Determine which stages should the current time instant be
-                        stage_index = ceil(t/time_step)
+                        stage_index = convert(Int, ceil(t/time_step))
                         print(resultfile, round(value(model[:pg][i,stage_index])*100))
                     end
                 end
@@ -565,7 +571,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
                 for t in time_series
                     if t<time_final
                        # Determine which stages should the current time instant be
-                        stage_index = ceil(t/time_step)
+                        stage_index = convert(Int, ceil(t/time_step))
                         if i in keys(CP[:u])
                             # check if the current stage is the changing stage
                             if CP[:u][i] == stage_index  # If yes, mark the time series data as "tbd"
@@ -581,7 +587,7 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
                         end
                     else
                         # Determine which stages should the current time instant be
-                        stage_index = ceil(t/time_step)
+                        stage_index = convert(Int, ceil(t/time_step))
                         print(resultfile, Int(round(value(model[:u][i,stage_index]))))
                     end
                 end

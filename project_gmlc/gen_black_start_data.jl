@@ -28,7 +28,7 @@ using PowerModels
 include("proj_utils.jl")
 
 # # ------------ Load data --------------
-dir_case_network = "../GMLC_test_case/rts-gmlc-gic.raw"
+dir_case_network = "../GMLC_test_case/rts-gmlc-gic_ver1.raw"
 
 network_data_format = "psse"
 
