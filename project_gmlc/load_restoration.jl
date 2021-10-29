@@ -99,7 +99,8 @@ PyPlot.show()
 sav_dict = string(pwd(), "/", dir_case_result, "fig_load_pickup.png")
 PyPlot.savefig(sav_dict)
 
-
-# for (i, item) in sort!(OrderedDict(ref[:gen]))
-#     println("Gen Index: ", i, ",  Generator bus index: ", item["gen_bus"], ",  Rated Power: ", item["pg"])
-# end
+# debug for load ratio print
+for (i, item) in sort!(OrderedDict(ref[:load]))
+    println("Load index: ", i, "  Load ratio: ", value(model[:pl][i,1])/ref[:load][i]["pd"],
+    "  Data type: ", typeof(value(model[:pl][i,1])/ref[:load][i]["pd"])      )
+end
