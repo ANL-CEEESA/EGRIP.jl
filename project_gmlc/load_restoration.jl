@@ -31,11 +31,21 @@ using LinearAlgebra
 include("proj_utils.jl")
 
 # # ===================================== Load data =====================================
+
 dir_case_network = "../GMLC_test_case/rts-gmlc-gic_ver1.raw"
-dir_case_component_status = "../GMLC_test_case/rts_gmlc_gic_mods_PT.json"
+
+# # ---------------- option---------------
+# # note for testing
+# # in order to quickly test the code, we need to reduce the computation time
+# # To do this, we shorten the t_final to 3 days and change the json file accordingly
+# # -----for testing----
+# dir_case_component_status = "../GMLC_test_case/rts_gmlc_gic_mods_PT_test.json"; t_final = 3
+# # ----for run----
+dir_case_component_status = "../GMLC_test_case/rts_gmlc_gic_mods_PT.json"; t_final = 25
+# ---------------- option ends---------------
+
 network_data_format = "psse"
 dir_case_result = "results_load_pickup/"
-t_final = 25
 t_step = 1
 gap = 0.2
 stages = 1:t_step:t_final
@@ -88,3 +98,8 @@ fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
 sav_dict = string(pwd(), "/", dir_case_result, "fig_load_pickup.png")
 PyPlot.savefig(sav_dict)
+
+
+# for (i, item) in sort!(OrderedDict(ref[:gen]))
+#     println("Gen Index: ", i, ",  Generator bus index: ", item["gen_bus"], ",  Rated Power: ", item["pg"])
+# end

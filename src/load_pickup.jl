@@ -98,6 +98,13 @@ function solve_load_pickup(dir_case_network, network_data_format, dir_repair, di
     println("The objective value is: ", objective_value(model))
 
     # ---- write the results -----
+    # sort dict
+    ordered_load = sort!(OrderedDict(ref[:load])) # order the dict based on the key
+    ordered_gen = sort!(OrderedDict(ref[:gen])) # order the dict based on the key
+    ordered_bus = sort!(OrderedDict(ref[:bus])) # order the dict based on the key
+    ordered_branch = sort!(OrderedDict(ref[:branch])) # order the dict based on the key
+    ordered_arcs = sort!(ref[:arcs])
+
     resultfile = open(string(dir_case_result, "load_value.csv"), "w")
     print(resultfile, "Load Index, Load Bus,")
     for t in stages
@@ -108,7 +115,7 @@ function solve_load_pickup(dir_case_network, network_data_format, dir_repair, di
             println(resultfile, t)
         end
     end
-    for (i, entry) in sort!(OrderedDict(ref[:load]))
+    for (i, entry) in ordered_load
                 print(resultfile, i)
                 print(resultfile, ", ")
                 print(resultfile, entry["load_bus"])
@@ -136,7 +143,7 @@ function solve_load_pickup(dir_case_network, network_data_format, dir_repair, di
             println(resultfile, t)
         end
     end
-    for (i, entry) in sort!(OrderedDict(ref[:load]))
+    for (i, entry) in ordered_load
                 print(resultfile, i)
                 print(resultfile, ", ")
                 print(resultfile, entry["load_bus"])
@@ -153,6 +160,118 @@ function solve_load_pickup(dir_case_network, network_data_format, dir_repair, di
             println(resultfile, " ")
     end
     close(resultfile)
+
+    resultfile = open(string(dir_case_result, "gen_status.csv"), "w")
+    print(resultfile, "Gen Index, Gen Bus,")
+    for t in stages
+        if t < stages[end]
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, entry) in ordered_gen
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, entry["gen_bus"])
+                print(resultfile, ", ")
+                for t in stages
+                    if t < stages[end]
+                        print(resultfile, value(model[:y][i, t]))
+                        print(resultfile, ", ")
+                    else
+                        # Determine which stages should the current time instant be
+                        print(resultfile, value(model[:y][i, t]))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+    resultfile = open(string(dir_case_result, "gen_value.csv"), "w")
+    print(resultfile, "Gen Index, Gen Bus,")
+    for t in stages
+        if t < stages[end]
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, entry) in ordered_gen
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, entry["gen_bus"])
+                print(resultfile, ", ")
+                for t in stages
+                    if t < stages[end]
+                        print(resultfile, value(model[:pg][i, t]))
+                        print(resultfile, ", ")
+                    else
+                        # Determine which stages should the current time instant be
+                        print(resultfile, value(model[:pg][i, t]))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+    resultfile = open(string(dir_case_result, "gen_ratio.csv"), "w")
+    print(resultfile, "Gen Index, Gen Bus,")
+    for t in stages
+        if t < stages[end]
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for (i, entry) in ordered_gen
+                print(resultfile, i)
+                print(resultfile, ", ")
+                print(resultfile, entry["gen_bus"])
+                print(resultfile, ", ")
+                for t in stages
+                    if t < stages[end]
+                        print(resultfile, value(model[:pg][i, t])/entry["pmax"])
+                        print(resultfile, ", ")
+                    else
+                        # Determine which stages should the current time instant be
+                        print(resultfile, value(model[:pg][i, t])/entry["pmax"])
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
+
+    # Write active power flow
+    resultfile = open(string(dir_case_result, "line_p.csv"), "w")
+    print(resultfile, "Branch Index, From/To, To/From, ")
+    for t in stages
+        if t<nstage
+            print(resultfile, t)
+            print(resultfile, ", ")
+        else
+            println(resultfile, t)
+        end
+    end
+    for i in ordered_arcs
+                print(resultfile, i)
+                print(resultfile, ", ")
+                for t in stages
+                    if t<nstage
+                        print(resultfile, value(model[:p][i,t]))
+                        print(resultfile, ",")
+                    else
+                        print(resultfile, value(model[:p][i,t]))
+                    end
+                end
+            println(resultfile, " ")
+    end
+    close(resultfile)
+
 
     return ref, model
 end
