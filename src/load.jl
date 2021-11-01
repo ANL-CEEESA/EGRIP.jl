@@ -42,11 +42,67 @@ function def_var_load(model, ref, stages; form=4)
         @variable(model, ql[keys(ref[:load]),stages])
         # total load at time t
         @variable(model, pd_total[stages])
+    elseif form == 5
+        @variable(model, z[keys(ref[:load]),stages])
+        # load P and Q
+        @variable(model, pl[keys(ref[:load]),stages])
+        @variable(model, ql[keys(ref[:load]),stages])
+        # total load at time t
+        @variable(model, pd_total[stages])
     end
 
     return model
 end
 
+
+function form_load_pickup(model, ref, stages)
+    println("Formulating load pickup constraints")
+    pl = model[:pl]
+    ql = model[:ql]
+    u = model[:u]
+    z = model[:z]
+    for t in stages
+        for l in keys(ref[:load])
+            @constraint(model, u[ref[:load][l]["load_bus"],t] >= z[l, t])
+            # active power load
+            if ref[:load][l]["pd"] >= 0  # The current bus has positive active power load
+                @constraint(model, pl[l,t] >= 0)
+                @constraint(model, pl[l,t] <= ref[:load][l]["pd"] * z[l, t])
+                if t > 1
+                    @constraint(model, pl[l,t] >= pl[l,t-1]) # no load shedding
+                end
+            else
+                @constraint(model, pl[l,t] <= 0) # The current bus has no positive active power load ?
+                @constraint(model, pl[l,t] >= ref[:load][l]["pd"] * z[l, t])
+                if t > 1
+                    @constraint(model, pl[l,t] <= pl[l,t-1])
+                end
+            end
+
+            # reactive power load
+            if ref[:load][l]["qd"] >= 0
+                @constraint(model, ql[l,t] >= 0)
+                @constraint(model, ql[l,t] <= ref[:load][l]["qd"] * z[l, t])
+                if t > 1
+                    @constraint(model, ql[l,t] >= ql[l,t-1])
+                end
+            else
+                @constraint(model, ql[l,t] <= 0)
+                @constraint(model, ql[l,t] >= ref[:load][l]["qd"] * z[l, t])
+                if t > 1
+                    @constraint(model, ql[l,t] <= ql[l,t-1])
+                end
+            end
+        end
+    end
+
+    # define the total load
+    for t in stages
+        @constraint(model, model[:pd_total][t] == sum(model[:pl][d,t] for d in keys(ref[:load])))
+    end
+
+    return model
+end
 
 @doc raw"""
 Load pickup constraint used for full restoration problem

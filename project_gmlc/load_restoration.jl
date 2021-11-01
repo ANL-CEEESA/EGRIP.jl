@@ -39,7 +39,7 @@ dir_case_network = "../GMLC_test_case/rts-gmlc-gic_ver1.raw"
 # # in order to quickly test the code, we need to reduce the computation time
 # # To do this, we shorten the t_final to 3 days and change the json file accordingly
 # # -----for testing----
-# dir_case_component_status = "../GMLC_test_case/rts_gmlc_gic_mods_PT_test.json"; t_final = 3
+# dir_case_component_status = "../GMLC_test_case/rts_gmlc_gic_mods_PT_test.json"; t_final = 5
 # # ----for run----
 dir_case_component_status = "../GMLC_test_case/rts_gmlc_gic_mods_PT.json"; t_final = 25
 # ---------------- option ends---------------

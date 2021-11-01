@@ -39,7 +39,7 @@ function solve_load_pickup(dir_case_network, network_data_format, dir_repair, di
     # define generator variables
     model = def_var_gen(model, ref, stages; form=4)
     # define load variable
-    model = def_var_load(model, ref, stages; form=4)
+    model = def_var_load(model, ref, stages; form=5)
     # define flow variable
     model = def_var_flow(model, ref, stages)
 
@@ -65,6 +65,12 @@ function solve_load_pickup(dir_case_network, network_data_format, dir_repair, di
         end
     end
 
+    for load_key in keys(component_status["load"])
+        for t in 1:component_status["load"][load_key]["repair_time_days"]
+            @constraint(model, model[:z][parse(Int, load_key), t] == 0)
+        end
+    end
+
     # --------------- generator constraints ----------------
     println("Formulating generator dispatch constraints")
     for t in stages
@@ -81,7 +87,7 @@ function solve_load_pickup(dir_case_network, network_data_format, dir_repair, di
     model = form_branch(model, ref, stages)
 
     # ------------ load constraints---------
-    model = form_load_logic(model, ref, stages)
+    model = form_load_pickup(model, ref, stages)
 
     # -------- objective----------
     if load_priority == nothing
