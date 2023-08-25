@@ -47,7 +47,8 @@ label_list = ["SAA 1", "SAA 40%"]
 # note that we ignore the ERCOT wind data in the version control for security
 # Each time we may need to add the data folder manually
 wind_data = CSV.read("../../ERCOT_wind/wind_farm3_POE.csv", DataFrame)
-wind_data = convert(Matrix, wind_data)
+# wind_data = convert(Matrix, wind_data)
+wind_data = Matrix(wind_data)
 prob = 1.0:-0.1:0.1
 # construct estimated density function
 wind_density = Dict()

@@ -142,8 +142,8 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_gen.png")
-PyPlot.savefig(sav_dict)
+# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_gen.png")
+# PyPlot.savefig(sav_dict)
 
 # ---------------------------------------load power------------------------------
 PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
@@ -167,8 +167,8 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_load.png")
-PyPlot.savefig(sav_dict)
+# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_load.png")
+# PyPlot.savefig(sav_dict)
 
 # # ---------------------------system available capacity--------------------------
 # PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
@@ -239,8 +239,8 @@ ax.xaxis.set_tick_params(labelsize=20)
 ax.yaxis.set_tick_params(labelsize=20)
 fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
 PyPlot.show()
-sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_wind_dispatch.png")
-PyPlot.savefig(sav_dict)
+# sav_dict = string(pwd(), "/", dir_case_result, "fig_gen_startup_fix_sample_wind_dispatch.png")
+# PyPlot.savefig(sav_dict)
 
 # # ------------------- save data into json --------------------
 # using JSON
