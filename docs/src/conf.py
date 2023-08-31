@@ -37,7 +37,7 @@ extensions = [
 ]
 
 autoapi_dirs = [
-    '../egrip/src'
+    '../../egrip/src'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
