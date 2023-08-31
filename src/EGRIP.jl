@@ -29,12 +29,23 @@ include("load_pickup.jl")
 # include("parser.jl")
 
 export solve_restoration_full
-export solve_restoration_part
+export solve_restoration_ppsr
 export solve_load_pickup
 export solve_refined_restoration
 export solve_section
 export solve_startup
 export load_network
 export load_gen
+
+# export some functions for testing purposes
+export def_var_gen
+export def_var_load
+export def_var_flow
+export form_branch
+export form_nodal
+export form_gen_logic
+export form_gen_cranking
+export form_load_logic
+export bus_energization_rule
 
 end

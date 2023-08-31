@@ -605,24 +605,20 @@ end
 
 
 @doc raw"""
-Solve partial restoration problem (The restoration problem could be partial or full restorations)
-- Partial restoration problem assumes that a part of the network is still functioning.
-- Inputs: A set of restoration data in csv format and original system data
+Solve partial restoration problem given generator startup plan
+- Here the generator startup plan is given from the Parallel Power System Restoration (PPSR) module.
+- Inputs:
     - network data directory where data format could be json, matpower and psse
-    - restoration data directory
-        - restoration_gen: specify initial generator status, cranking specifications and black-start generators
-        - restoration_bus: specify initial bus status and its load priority, from where the problem type (partial or full restorations) can be determined
-        - restoration_line: specify initial line status, from where the problem type (partial or full restorations) can be determined
-    - result storage directory
+    - restoration plan
+    - result directory
     - gap
-- Output: Restoration plans
+- Output: Rest part of the restoration plans
 - Constraints:
     - linearized AC power flow constraint
     - steady-state voltage variation constraint
-    - generator cranking constraint
-    - generator status and output constraint
-    - load pick-up constraint
+    - generator startup and load pickup should be consistent with the given plan
 """
 function solve_restoration_part(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap)
     println("under construction")
 end
+

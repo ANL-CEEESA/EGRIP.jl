@@ -65,19 +65,19 @@ function load_gen(dir_case_blackstart, ref, time_step)
     bs_data = CSV.read(dir_case_blackstart, DataFrame)
 
     # Define dictionary
-    Pcr = Dict()
-    Tcr = Dict()
-    Krp = Dict()
+    Pcr = Dict()    # cranking power
+    Tcr = Dict()    # cranking time
+    Krp = Dict()    # ramping rate
 
     for g in keys(ref[:gen])
         # This find index is added in case the genertor key is not from 1
         index = findall(x->x==g,bs_data[:,1])
         # cranking power: power needed for the unit to be normally functional, unit converted into pu
-        Pcr[g] = bs_data[index,3] / ref[:baseMVA]
+        Pcr[g] = bs_data[index[1],3] / ref[:baseMVA]
         # cranking time: time needed for the unit to be normally functional
-        Tcr[g] = bs_data[index,4]  # in minutes
+        Tcr[g] = bs_data[index[1],4]  # in minutes
         # ramping rate: the unit in BS data is MW/min and converted into pu/min
-        Krp[g] = bs_data[index,5] / ref[:baseMVA]   # originally in minutes/MW and now in minutes/pu
+        Krp[g] = bs_data[index[1],5] / ref[:baseMVA]   # originally in minutes/MW and now in minutes/pu
     end
 
     # Adjust generator data based on time step from minute to per time step
@@ -87,4 +87,13 @@ function load_gen(dir_case_blackstart, ref, time_step)
     end
     println("Complete loading generator black start data")
     return Pcr, Tcr, Krp
+end
+
+
+@doc raw"""
+Load restoration plan from parallel power system restoration (PPSR) module
+"""
+function load_gen(dir_restoration_plan)
+    println("Loading restoration plan from parallel power system restoration (PPSR) modulea")
+    plan = CSV.read(dir_case_blackstart, DataFrame)
 end
