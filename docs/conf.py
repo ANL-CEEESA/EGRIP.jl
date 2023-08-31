@@ -13,13 +13,11 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
-# for the local relative import in project_dis_restoration
-sys.path.insert(0, os.path.abspath('../../project_dis_restoration/'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'IntelliHealer'
-copyright = '2021, Yichen Zhang'
+project = 'EGRIP.jl'
+copyright = 'ANL-CEEESA'
 author = 'Yichen Zhang'
 
 # The full version, including alpha/beta/rc tags
@@ -39,8 +37,7 @@ extensions = [
 ]
 
 autoapi_dirs = [
-    '../../gym_power_res',
-    '../../project_dis_restoration'
+    '../egrip/src'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
