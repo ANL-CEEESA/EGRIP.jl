@@ -1,10 +1,7 @@
-# EGRIP.jl Documentation
+# EGRIP.jl 
+[Documentation](https://anl-ceeesa.github.io/EGRIP.jl/index.html)
 
-```@meta
-CurrentModule = EGRIP
-```
 Welcome to the documentation for `EGRIP.jl`!
-
 
 ## Overview
 EGRIP (Electricity Grid Resilience Improvement Program) is a Julia/MATALB package for power system restoration planning and verification. After a partial or full blackout, the objective of the system operator is to restore the customer services as soon as possible, which is crucial for power system resilience. Power system restoration is an extremely complicated process, involving multiple steps, highly combinatorial operational decisions, and highly nonlinear technical constraints, which make restoration planning an exceptionally challenging task.
@@ -26,7 +23,6 @@ The optimization core is designed in a modularize and hierarchical manner to fac
 - The **fundamental function level** is to provide basic optimization formulations. Currently it consists of generator dispatch model, generator cranking model, controllable load dispatch model, linearized AC power flow model and AC power flow model as well as data I/O.
 - The **ordinary problem level** formulates different problems using appropriate functions from both fundamental and its own levels. Currently there are three ordinary problems, that is, load restoration problem, system black-start problem and AC power flow feasibility checking problem. The load restoration problem is to maximize served load under a energized topology. The system black-start problem is to simultaneously energize the system and restore load service through black-start units.
 - The **advanced solution level** is to either speed up the computation or accommodate new capabilities using both state-of-the-art optimization algorithm and power system domain knowledge. Currently it consists of the multi-resolution restoration algorithm and meta heuristic enhancement. The multi-resolution restoration algorithm is to accelerate the overall solution time by guiding the search of higher-resolution problem using solutions from lower-resolution solutions. The meta heuristic enhancement uses power system domain knowledge and to add additional physical constraints and empirical rules to speed up the computation.
-![Toolkit structure](fig_restoration_structure_1.png)
 
 
 
@@ -37,11 +33,10 @@ The simulation core is used for the resilience assessment of system under possib
 * **Enhanced robustness.** The SAS as a high-order advanced computational approach with analytical form, has guaranteed numerical convergence to existing solution. Therefore, the SAS users are worry-free of non-convergence issues, and the simulation tool has good capability of performing very complex power system resilience analysis tasks.
 * **Enhanced efficiency with steady-state & dynamic hybrid simulation.** The simulator automatically switches between full-dynamic simulation (where fast transients are significant) and quasi-steady-state (QSS) simulation (where the transients decay and approximately enters steady-state). The hybrid simulation scheme significantly saves computation time compared with the full-dynamic simulation, typically by 30%-70% depending on studied cases.
 * **Friendly output and visualization functions.** The SAS-based simulation tool has a log system that enables printing and recording different levels of events in simulation. After simulation, users can conveniently plot the trajectories of various system states through a specially designed plotting function.
-![Toolkit structure](fig_sas_ext_term.png)
 
 
 ## Authors
-* **Yichen Zhang,** Argonne National Laboratory (yichen.zhang@anl.gov)
+* **Yichen Zhang,** University of Texas at Arlington (yichen.zhang@uta.edu)
 * **Rui Yao,** Argonne National Laboratory (ryao@anl.gov)
 * **Feng Qiu,** Argonne National Laboratory (fqiu@anl.gov)
 
@@ -82,10 +77,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 ## Manual
-- [Installation](@ref)
-- [Tutorials](@ref)
-- [Problem Formulation](@ref)
-- [Advanced Algorithms](@ref)
+- [Home](https://anl-ceeesa.github.io/EGRIP.jl/)
+- [Installation](https://anl-ceeesa.github.io/EGRIP.jl/ch1_sec1_install.html)
+- [Tutorials](https://anl-ceeesa.github.io/EGRIP.jl/ch1_sec2_tutorials.html)
+- [Problem Formulation](https://anl-ceeesa.github.io/EGRIP.jl/ch1_sec3_formulations.html)
+- [Advanced Algorithms](https://anl-ceeesa.github.io/EGRIP.jl/ch1_sec4_advanced_algorithm.html)
 ## Library
-- [Public Library](@ref)
-- [Internal Library](@ref)
+- [Public Library](https://anl-ceeesa.github.io/EGRIP.jl/ch2_sec1_library_public.html)
+- [Internal Library](https://anl-ceeesa.github.io/EGRIP.jl/ch2_sec2_library_internal.html)
