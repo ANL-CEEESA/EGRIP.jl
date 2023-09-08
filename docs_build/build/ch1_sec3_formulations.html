@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Mathematical Model · EGRIP.jl</title><script async src="https://www.googletagmanager.com/gtag/js?id=UA-367975-10"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-367975-10', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">EGRIP.jl</a></span></div><form class="docs-search" action="search.html"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="index.html">Home</a></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="ch1_sec1_install.html">Installation</a></li><li><a class="tocitem" href="ch1_sec2_tutorials.html">Tutorials</a></li><li class="is-active"><a class="tocitem" href="ch1_sec3_formulations.html">Mathematical Model</a><ul class="internal"><li><a class="tocitem" href="#Restoration-with-Network-Energization-and-Power-Flow"><span>Restoration with Network Energization and Power Flow</span></a></li><li><a class="tocitem" href="#Generator-Start-up-Sequence-Optimization"><span>Generator Start-up Sequence Optimization</span></a></li></ul></li><li><a class="tocitem" href="ch1_sec4_advanced_algorithm.html">Advanced Algorithms</a></li></ul></li><li><span class="tocitem">Library</span><ul><li><a class="tocitem" href="ch2_sec1_library_public.html">Public Library</a></li><li><a class="tocitem" href="ch2_sec2_library_internal.html">Internal Library</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href="ch1_sec3_formulations.html">Mathematical Model</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="ch1_sec3_formulations.html">Mathematical Model</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com//blob/master/docs/src/ch1_sec3_formulations.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Problem-Formulation"><a class="docs-heading-anchor" href="#Problem-Formulation">Problem Formulation</a><a id="Problem-Formulation-1"></a><a class="docs-heading-anchor-permalink" href="#Problem-Formulation" title="Permalink"></a></h1><p><code>EGRIP.jl</code> currently provides two types of restoration problem formulations:</p><ul><li><a href="ch1_sec3_formulations.html#Restoration-with-Network-Energization-and-Power-Flow">Restoration with Network Energization and Power Flow</a>: This problem formulation models the detailed network energization sequences and power flow constraints. The obtained results can be highly reliable but the computation complexity is high.</li><li><a href="ch1_sec3_formulations.html#Generator-Start-up-Sequence-Optimization">Generator Start-up Sequence Optimization</a>: This problem formulation focuses on the optimal generator start-up sequence, which is essential in the overall restoration problem. Here the power balance constraint is considered instead of the network energization and power flow constraints. The computation complexity is low but the results may need further verification.</li></ul><h2 id="Restoration-with-Network-Energization-and-Power-Flow"><a class="docs-heading-anchor" href="#Restoration-with-Network-Energization-and-Power-Flow">Restoration with Network Energization and Power Flow</a><a id="Restoration-with-Network-Energization-and-Power-Flow-1"></a><a class="docs-heading-anchor-permalink" href="#Restoration-with-Network-Energization-and-Power-Flow" title="Permalink"></a></h2><p>The problem formulations are implemented in function <code>solve_restoration_full</code>.</p><h3 id="Sets,-Parameters-and-Variables"><a class="docs-heading-anchor" href="#Sets,-Parameters-and-Variables">Sets, Parameters and Variables</a><a id="Sets,-Parameters-and-Variables-1"></a><a class="docs-heading-anchor-permalink" href="#Sets,-Parameters-and-Variables" title="Permalink"></a></h3><p class="math-container">\[\begin{align*}
+%
+\mbox{Indices and Sets:} &amp;  \\
+&amp; i,j\in N \mbox{ - buses} \\
+&amp; b\in B \mbox{ - branches} \\
+&amp; g\in G \mbox{ - generators} \\
+&amp; l\in L \mbox{ - loads} \\
+%
+\mbox{Parameters:} &amp;  \\
+&amp; Pcr_{g} \quad\forall g \in G \mbox{ - generator cranking power: power needed for the unit to be normally functional}\\
+&amp; Tcr_{g} \quad\forall g \in G \mbox{ - generator cranking time: time needed for the unit to be normally functional}\\
+&amp; Krp_{g} \quad\forall g \in G \mbox{ - generator ramping rate} \\
+%
+\mbox{Binary Variables:} &amp;  \\
+&amp; x_{ij,t} \mbox{ - status of line $ij$ at time $t$}\\
+&amp; y_{g,t} \mbox{ - status of generator $g$ at time $t$}\\
+&amp; u_{i,t} \mbox{ - status of bus $i$ at time $t$}\\
+%
+\mbox{Continuous Variables:} &amp;  \\
+&amp; v_{i,t} \mbox{ - voltage of bus $i$ at time $t$}\\
+&amp; a_{i,t} \mbox{ - relative angle of bus $i$ at time $t$}\\
+&amp; vl_{ij,t} \mbox{ - supplementary variables for voltage of bus $i$ (connected to bus $j$) at time $t$}\\
+&amp; vb_{i,t} \mbox{ - supplementary variables for voltage of bus $i$ at time $t$}\\
+&amp; al_{ij,t} \mbox{ - supplementary variables for relative angle of bus $i$ (connected to bus $j$) at time $t$}\\
+&amp; pl_{l,t} \mbox{ - active power of load $l$ at time $t$}\\
+&amp; ql_{l,t} \mbox{ - reactive power of load $l$ at time $t$}\\
+&amp; pg_{l,t} \mbox{ - active power of generator $g$ at time $t$}\\
+&amp; qg_{l,t} \mbox{ - reactive power of generator $g$ at time $t$}\\
+&amp; p_{bij,t} \mbox{ - active power flow of branch $b$ (bus $i$ and $j$) at time $t$}\\
+&amp; q_{bij,t} \mbox{ - reactive power flow of branch $b$ (bus $i$ and $j$) at time $t$}\\
+\end{align*}\]</p><h3 id="Power-Flow-Model"><a class="docs-heading-anchor" href="#Power-Flow-Model">Power Flow Model</a><a id="Power-Flow-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Power-Flow-Model" title="Permalink"></a></h3><p>The formulations of branch constraints are implemented in function <code>form_branch</code>. Here the linearized AC power flow model is considered.</p><h4 id="Linearized-AC-power-flow"><a class="docs-heading-anchor" href="#Linearized-AC-power-flow">Linearized AC power flow</a><a id="Linearized-AC-power-flow-1"></a><a class="docs-heading-anchor-permalink" href="#Linearized-AC-power-flow" title="Permalink"></a></h4><p>Expanding the AC power flows about <span>$v_{i}=v_{j}=1$</span>, <span>$α_{ij}=0$</span> and making small-angle approximations <span>$sinα_{ij}=α_{ij}$</span> and <span>$cosα_{ij}=1$</span> yielding linearized AC power flow</p><p class="math-container">\[\begin{align*}
+&amp; p_{ij,t}=G_{ii}(2v_{i,t}-1) + G_{ij}(v_{i,t} + v_{j,t}-1) + B_{ij}\sinα_{ij}\\
+&amp; q_{ij,t}=-B_{ii}(2v_{i,t}-1) - B_{ij}(v_{i,t} + v_{j,t}-1) + G_{ij}\cosα_{ij}\\
+\end{align*}\]</p><p>where voltage and reactive power are retained.</p><p>(Ref: Trodden, Paul A., Waqquas Ahmed Bukhsh, Andreas Grothey, and Ken IM McKinnon. &quot;Optimization-based islanding of power networks using piecewise linear AC power flow.&quot; <em>IEEE Transactions on Power Systems</em> 29, no. 3 (2013): 1212-1220.)</p><h4 id="Linearized-AC-power-flow-with-bus-and-line-energization"><a class="docs-heading-anchor" href="#Linearized-AC-power-flow-with-bus-and-line-energization">Linearized AC power flow with bus and line energization</a><a id="Linearized-AC-power-flow-with-bus-and-line-energization-1"></a><a class="docs-heading-anchor-permalink" href="#Linearized-AC-power-flow-with-bus-and-line-energization" title="Permalink"></a></h4><p class="math-container">\[\begin{align*}
+p_{bij,t}=G_{ii}(2vl_{ij,t}-x_{ij,t}) + G_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) + B_{ij}(al_{ij,t}-al_{ij,t})\\
+q_{bij,t}=-B_{ii}(2vl_{ij,t}-x_{ij,t}) - B_{ij}(vl_{ij,t} + vl_{ji,t}-x_{ij,t}) + G_{ij}(al_{ij,t}-al_{ij,t})\\
+\end{align*}\]</p><h3 id="Nodal-Constraint-Model"><a class="docs-heading-anchor" href="#Nodal-Constraint-Model">Nodal Constraint Model</a><a id="Nodal-Constraint-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Nodal-Constraint-Model" title="Permalink"></a></h3><p>The formulations of nodal constraints are implemented in function <code>form_nodal</code>.</p><ul><li>Voltage Constraint<ul><li>voltage deviation should be limited</li><li>voltage constraints are only activated if the associated line is energized</li></ul></li></ul><p class="math-container">\[\begin{align*}
+    &amp; v^{\min}_{i} \leq v_{i,t} \leq v^{\max}_{i}\\
+    &amp; v^{\min}_{i}x_{ij,t} \leq vl_{ij,t} \leq v^{\max}_{i}x_{ij,t}\\
+    &amp; v^{\min}_{j}x_{ij,t} \leq vl_{ji,t} \leq v^{\max}_{j}x_{ij,t}\\
+    &amp; v_{i,t} - v^{\max}_{i}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{i,t} - v^{\min}_{i}(1-x_{ij,t})\\
+    &amp; v_{j,t} - v^{\max}_{j}(1-x_{ij,t}) \leq vl_{ij,t} \leq v_{j,t} - v^{\min}_{j}(1-x_{ij,t})
+\end{align*}\]</p><ul><li>Angle Difference Constraint<ul><li>angle difference should be limited</li><li>angle difference constraints are only activated if the associated line is energized</li></ul></li></ul><p class="math-container">\[ \begin{align*}
+     &amp; a^{\min}_{ij} \leq a_{i,t}-a_{j,t} \leq a^{\max}_{ij}\\
+     &amp; a^{\min}_{ij}x_{ij,t} \leq al_{ij,t}-al_{ji,t} \leq a^{\max}_{ij}x_{ij,t}\\
+     &amp; a_{i,t}-a_{j,t}-a^{\max}_{ij}(1-x_{ij,t}) \leq al_{ij,t}-al_{ji,t} \leq a_{i,t}-a_{j,t}-a^{\min}_{ij}(1-x_{ij,t})
+ \end{align*}\]</p><ul><li>Generator and Bus Energizing Logics<ul><li>on-line generator cannot be shut down</li><li>bus should be energized before the connected genertor being on</li></ul></li></ul><p class="math-container">\[\begin{align*}
+ &amp; x_{ij,t} \geq x_{ij,t-1}\\
+ &amp; u_{i,t} \geq x_{ij,t}\\
+ &amp; u_{j,t} \geq x_{ij,t}
+\end{align*}\]</p><ul><li>Bus Energized Constraints<ul><li>bus energized indicating generator energized</li><li>on-line buses cannot be shut down</li></ul></li></ul><p class="math-container">\[\begin{align*}
+&amp; v^{\min}u_{i,t} \leq vb_{i,t} \leq v^{\max}u_{i,t} \\
+&amp; v_{i,t} - v^{\max}(1-u_{i,t}) \leq vb_{i,t} \leq v_{i,t} - v^{\min}(1-u_{i,t})\\
+&amp; u_{g,t} = y_{g,t}\\
+&amp; u_{i,t} \geq u_{i,t-1}
+\end{align*}\]</p><ul><li>Nodal Power Balance Constraint</li></ul><p class="math-container">\[\begin{align*}
+&amp; \sum_{b\in i}p_{b,t}=\sum_{g\in i}pg_{g,t}-\sum_{l\in i}pl_{l,t}-Gs(2vb_{i,t}-u_{i,t})\\
+&amp; \sum_{b\in i}q_{b,t}=\sum_{g\in i}qg_{g,t}-\sum_{l\in i}ql_{l,t}+Bs(2vb_{i,t}-u_{i,t})
+\end{align*}\]</p><h3 id="Generator-Cranking-Model"><a class="docs-heading-anchor" href="#Generator-Cranking-Model">Generator Cranking Model</a><a id="Generator-Cranking-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Generator-Cranking-Model" title="Permalink"></a></h3><p>The formulations of generator cranking constraints are implemented in function <code>form_gen_cranking_1</code>.</p><p>The capacity curve for non-black start generator is simplifed and modeled as a piecewise linear function of time shown below.</p><p><img src="fig_gen_cranking.png" alt="Capacity curve"/>{#fig:capacity_curve}</p><p>(Ref: Qiu, Feng, and Peijie Li. &quot;An integrated approach for power system restoration planning.&quot; <em>Proceedings of the IEEE</em> 105, no. 7 (2017): 1234-1252.)</p><p>Once a non-black start generator is on, that is, <span>$y_{g,t}=1$</span>, then it needs to absorb the cranking power for its corresponding cranking time. &quot;After&quot; the time step that this unit satisfies its cranking constraint, its power goes to zero; and from the next time step, it becomes a dispatchable generator</p><ul><li>set non-black start unit generation limits based on &quot;generator cranking constraint&quot;</li><li>cranking constraint states if generator g has absorb the cranking power for its corresponding cranking time, it can produce power</li></ul><p>Mathematically if there exist enough 1 for <span>$y_{g,t}=1$</span>, then enable this generator&#39;s generating capability. There will be the following scenarios</p><ul><li>(1) generator is off, then <span>$y_{g,t}-y_{g,t-Tcr_{g}} = 0$</span>, then <span>$pg_{g,t} = 0$</span></li><li>(2) generator is on but cranking time not satisfied, then <span>$y_{g,t} - y_{g,t-Tcr_g} = 1$</span>, then <span>$pg_{g,t} = -Pcr_g$</span></li><li>(3) generator is on and just satisfies the cranking time, then <span>$y_{g,t} - y_{g,t-Tcr_g} = 0$</span>, <span>$y_{g,t-Tcr_g-1}=0$</span>, then <span>$pg_{g,t} = 0$</span></li><li>(4) generator is on and bigger than satisfies the cranking time, then <span>$y_{g,t} - y_{g,t-Tcr_g} = 0$</span>, <span>$y_{g,t-Tcr_g-1}=1$</span>, then <span>$0 &lt;= pg_{g,t} &lt;= pg^{\max}_{g}$</span></li></ul><p>All scenarios can be formulated as follows:</p><p class="math-container">\[\begin{align*}
+&amp; pg^{\min}_{g} \leq pg_{g,t} \leq pg^{\max}_{g}\\
+&amp; \text{ if }t &gt; Tcr_{g}+1\\
+&amp; \quad\quad -Pcr_{g}(y_{g,t}-y_{g,Tcr_{g}}) \leq pg_{g,t} \leq pg^{\max}_{g}y_{g,t-Tcr_{g}-1}-Pcr_{g}(y_{g,t} - y_{g,t-Tcr_{g}}) \\
+&amp; \text{ elseif }t \leq Tcr_{g}\\
+&amp; \quad\quad pg_{g,t} = -Pcr_{g}y_{g,t}\\
+&amp; \text{else }\\
+&amp; \quad\quad pg_{g,t} = -Pcr_{g}(y_{g,t} - y_{g,1})
+\end{align*}\]</p><h3 id="Generator-Dispatch-Model"><a class="docs-heading-anchor" href="#Generator-Dispatch-Model">Generator Dispatch Model</a><a id="Generator-Dispatch-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Generator-Dispatch-Model" title="Permalink"></a></h3><p>The formulations are implemented in function <code>form_gen_logic</code>.</p><ul><li>Generator ramping rate constraint</li></ul><p class="math-container">\[\begin{align*}
+-Krp_{g} \leq pg_{g,t}-pg_{g,t+1} \leq Krp_{g}
+\end{align*}\]</p><ul><li>Black-start unit is determined by the cranking power</li></ul><p class="math-container">\[\begin{align*}
+y_{g,t}=1 \text{  if  } Pcr_{g}=0
+\end{align*}\]</p><ul><li>On-line generators cannot be shut down</li></ul><p class="math-container">\[\begin{align*}
+y_{g,t} &lt;= y_{g,t+1}
+\end{align*}\]</p><h3 id="Load-Dispatch-Model"><a class="docs-heading-anchor" href="#Load-Dispatch-Model">Load Dispatch Model</a><a id="Load-Dispatch-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Load-Dispatch-Model" title="Permalink"></a></h3><p>The formulations are implemented in function <code>form_load_logic</code>.</p><ul><li>restored load cannot exceed its maximum values</li></ul><p class="math-container">\[\begin{align*}
+&amp; 0 \leq pl_{l,t} \leq pl^{\max}u_{l,t}\\
+&amp; 0 \leq ql_{l,t} \leq ql^{\max}u_{l,t}\\
+\end{align*}\]</p><ul><li>restored load cannot be shed</li></ul><p class="math-container">\[\begin{align*}
+&amp; pl_{l,t-1} \leq pl_{l,t}\\
+&amp; ql_{l,t-1} \leq ql_{l,t}\\
+\end{align*}\]</p><h2 id="Generator-Start-up-Sequence-Optimization"><a class="docs-heading-anchor" href="#Generator-Start-up-Sequence-Optimization">Generator Start-up Sequence Optimization</a><a id="Generator-Start-up-Sequence-Optimization-1"></a><a class="docs-heading-anchor-permalink" href="#Generator-Start-up-Sequence-Optimization" title="Permalink"></a></h2><p>In the generator start-up sequence optimization problem, we consider the same cranking curve. Instead of the power flow constraints, we will use the network power balance constraint. We do not dispatch the generator and load by assuming an automatic sequential actions after being started. The generator sequential actions are described below:</p><p class="math-container">\[\begin{align*}
+p_{g}(x_g,t)=\begin{cases}
+    0 &amp; 0\le t&lt;x_{g}\\
+    -c_{g} &amp; x_{g}\le t &lt; x_{g}+t_{g}^{c}\\
+    r_g(t-x_{g}-t_{g}^{c}) &amp; x_{g}+t_{g}^{c}\leq t &lt; x_{g}+t_{g}^{c}+t_{g}^{r}\\
+    p^{\mbox{max}} &amp; x_{g}+t_{g}^{c}+t_{g}^{r}\leq t \leq T,
+\end{cases}
+\end{align*}\]</p><p>The load sequential actions are described below:</p><p class="math-container">\[\begin{align*}
+p_{d}(x_d,t)=\begin{cases}
+    0 &amp; 0\le t &lt; x_{d}\\
+    -p_{d} &amp; x_{d}\le t\le T,
+\end{cases}
+\end{align*}\]</p><p>The formulations are implemented in function <code>solve_startup</code>. In <code>solve_startup</code>, there are several different formulations to solve the problem.</p><h3 id="Formulation-1"><a class="docs-heading-anchor" href="#Formulation-1">Formulation 1</a><a id="Formulation-1-1"></a><a class="docs-heading-anchor-permalink" href="#Formulation-1" title="Permalink"></a></h3><h4 id="Generator-action-logics"><a class="docs-heading-anchor" href="#Generator-action-logics">Generator action logics</a><a id="Generator-action-logics-1"></a><a class="docs-heading-anchor-permalink" href="#Generator-action-logics" title="Permalink"></a></h4><p>We introduce binary variables <span>$y_{gt}$</span>, <span>$z_{gt}$</span>, and <span>$u_{gt}$</span> to indicate whether generator <span>$g$</span> is in status of cranking, ramping, or full capacity in time period <span>$t$</span>, respectively. We introduce binary variable <span>$x_{gt}$</span> to indicate whether generator <span>$g$</span> is started in time period <span>$t$</span>. The formulations are implemented in function <code>form_gen_cranking_1</code>.</p><ul><li>First, a NBS generator has no activity before it is started</li></ul><p class="math-container">\[\begin{align*}
+&amp;\begin{aligned}
+		(t-1)(1-x_{gt}) \ge \sum_{i=1}^{t-1}y_{gi}\quad\forall g\in G, t\in T\backslash\{1\}
+\end{aligned}\\
+&amp;\begin{aligned}
+	(t+t^c_g-1)(1-x_{gt}) \ge \sum_{i=1}^{f(t)} z_{gi}\quad\forall g\in G, t\in T
+\end{aligned}\\
+&amp;\begin{aligned}
+	(t+t^c_g+t^r_g-1)(1-x_{gt}) \ge \sum_{i=1}^{g(t)}u_{gi}\quad\forall g\in G, t\in T
+\end{aligned}\\
+&amp; f(t)=\min\{|T|,t+t^c_g-1\},g(t)=\min\{|T|,t+t^c_g +t^r_g-1\}
+\end{align*}\]</p><ul><li>Second, once started, a cranking is followed</li></ul><p class="math-container">\[\begin{align*}
+\sum_{i=t}^{f(t)} y_{gi}\ge x_{gt}\times\min\{|T|-t, t^c_g\}\quad \forall t\in T
+\end{align*}\]</p><ul><li>Third, once cranking is finished, a ramping is followed</li></ul><p class="math-container">\[\begin{align*}
+	\label{eq_gen_ramp}
+\sum_{i=t+t^r_g-1}^{g(t)} z_{gi}\ge x_{gt}\times\min\{|T|-t, t^r_g\}\quad \forall t\in T
+\end{align*}\]</p><ul><li>Once the generator reaches to its maximum value, it should stay in this status</li></ul><p class="math-container">\[\begin{align*}
+	\label{eq_gen_max}
+	u_{gt}\geq u_{gt-1}\quad \forall t\in T\backslash\{1\}
+\end{align*}\]</p><ul><li>Additionally, in each stage each generator will have one status being activated, i.e.,</li></ul><p class="math-container">\[\begin{align*}
+	\label{eq_gen_one_status}
+y_{gi} + z_{gi} + u_{gi}\leq 1\quad \forall t\in T
+\end{align*}\]</p><ul><li>And there exists only one validated generator start-up moment</li></ul><p class="math-container">\[\begin{align*}
+	\label{eq_gen_one_start}
+	\sum_{t\in T}x_{gt} =1\quad \forall g\in G
+\end{align*}\]</p><ul><li>We can write the generation output of unit <span>$g$</span> in time period <span>$t$</span> as</li></ul><p class="math-container">\[\begin{align*}
+	\label{eq_gen_power}
+p_g(t) = -c_gy_{gt}+ \sum_{i=1}^t{z_{gi}r_g}
+\end{align*}\]</p><h4 id="Load-action-logics"><a class="docs-heading-anchor" href="#Load-action-logics">Load action logics</a><a id="Load-action-logics-1"></a><a class="docs-heading-anchor-permalink" href="#Load-action-logics" title="Permalink"></a></h4><p>Similarly, a load will undergo two stages. We introduce <span>$y_{dt}$</span> to indicate whether load <span>$d$</span> is in status of being energized and <span>$x_{dt}$</span> to indicate whether the energization event of load <span>$d$</span> happens in time <span>$t$</span>. The formulations are implemented in <code>form_load_logic_1</code>.</p><ul><li>First, a load has no activity before it is picked up</li></ul><p class="math-container">\[\begin{align*}
+	\label{eq_load_no_action}
+\sum_{i=1}^{t-1}y_{di} \le (t-1)(1-x_{dt})\quad \forall d\in D,t\in T\backslash\{1\}
+\end{align*}\]</p><ul><li>Second, a load is served to the end of the time horizon once it is picked up</li></ul><p class="math-container">\[\begin{align*}
+	\label{eq_load_served}
+\sum_{i=t}^{|T|}y_{di} \ge (|T|-t+1)x_{dt}\quad \forall d\in D
+\end{align*}\]</p><ul><li>And there exists only one validated load energization moment</li></ul><p class="math-container">\[\begin{align*}
+	\label{eq_load_one_start}
+	\sum_{t\in T}x_{gt} =1\quad \forall g\in G
+\end{align*}\]</p><ul><li>We can write the load <span>$d$</span> in time period <span>$t$</span> as</li></ul><p class="math-container">\[\begin{align*}
+	\label{eq_load_power}
+p_d(t) = - y_{dt}p_d
+\end{align*}\]</p><h4 id="Power-balance-constraint"><a class="docs-heading-anchor" href="#Power-balance-constraint">Power balance constraint</a><a id="Power-balance-constraint-1"></a><a class="docs-heading-anchor-permalink" href="#Power-balance-constraint" title="Permalink"></a></h4><p>The major constraints in restoration process is that, at any moment, the total generation capacity minus loads cannot be negative, which can be expressed as follows</p><p class="math-container">\[\begin{align*}
+\begin{aligned}
+	\label{eq_capacity_wo_renewable}
+\sum_{i\in G}{p_i(t)} -\sum_{i\in D}{d_i(t)} \ge 0\quad \forall t\in T
+\end{aligned}
+\end{align*}\]</p><h4 id="Objective"><a class="docs-heading-anchor" href="#Objective">Objective</a><a id="Objective-1"></a><a class="docs-heading-anchor-permalink" href="#Objective" title="Permalink"></a></h4><p class="math-container">\[\begin{align*}
+		\min \sum_{g \in G}\sum_{t\in T}tx_{gt}+\sum_{d \in D}\sum_{t\in T}tx_{dt}\\
+\end{align*}\]</p><h3 id="Formulation-2"><a class="docs-heading-anchor" href="#Formulation-2">Formulation 2</a><a id="Formulation-2-1"></a><a class="docs-heading-anchor-permalink" href="#Formulation-2" title="Permalink"></a></h3><h4 id="Generator-action-logics-2"><a class="docs-heading-anchor" href="#Generator-action-logics-2">Generator action logics</a><a class="docs-heading-anchor-permalink" href="#Generator-action-logics-2" title="Permalink"></a></h4><p>The formulations are implemented in function <code>form_gen_cranking_2</code>. Let <span>$p_g(t)$</span> represent the power output of generator <span>$g$</span> in time period <span>$t$</span>. Note that, <span>$p_g(t)$</span> depends on start time <span>$x_g$</span>. Once <span>$x_g$</span> is known, power output in every time period can be calculated with the following formula.</p><p class="math-container">\[\begin{align*}
+	p_{g}(x_g,t)=\begin{cases}
+		0 &amp; 0\le t&lt;x_{g}\\
+		-c_{g} &amp; x_{g}\le t&lt;x_{g}+t_{g}^{c}\\
+		r_g(t-x_{g}-t_{g}^{c}) &amp; x_{g}+t_{g}^{c}\le t\le x_{g}+t_{g}^{c}+t_{g}^{r}\\
+		p^{\mbox{max}} &amp; x_{g}+t_{g}^{c}+t_{g}^{r}\le t\le T,
+	\end{cases}
+\end{align*}\]</p><p>where <span>$T$</span> is restoration horizon. The term <span>$-c_{g}$</span> indicates that generator <span>$g$</span> is in the cranking status and consuming power.</p><p>With slight abuse of notation, let <span>$x_{gt}\in\{0,1\}, \forall g \in G, t\in T$</span> represent whether generator <span>$i$</span> is started in time period <span>$t$</span>, where <span>$G$</span> is the set of non-black start (NBS) generators. Therefore, the function <span>$p_g(t)$</span> can be rewritten as follows:</p><p class="math-container">\[\begin{align*}
+	p_g(t) = \sum_{i=1}^t{x_{gi}\times p_g(i,t)}\\
+	\sum_{t\in T}x_{gt}=1.
+\end{align*}\]</p><p>Note that <span>$p_g(i,t)$</span> is a constant.</p><h4 id="Load-action-logics-2"><a class="docs-heading-anchor" href="#Load-action-logics-2">Load action logics</a><a class="docs-heading-anchor-permalink" href="#Load-action-logics-2" title="Permalink"></a></h4><p>The formulations are implemented in <code>form_load_logic_2</code>. A load <span>$d_i(t)$</span> can be expressed similarly.</p><p class="math-container">\[\begin{align*}
+	p_{d}(x_d,t)=\begin{cases}
+		0 &amp; 0\le t&lt;x_{d}\\
+		-p_{d} &amp; x_{d}\le t\le T,
+	\end{cases}
+\end{align*}\]</p><p>where <span>$x_d$</span> is the pick-up time of load <span>$d$</span>. Similarly for load <span>$d$</span>:</p><p class="math-container">\[\begin{align*}
+	p_d(t) = \sum_{i=1}^t{x_{di}\times  p_d(i,t)}\\
+	\sum_{t\in T}x_{dt}=1.
+\end{align*}\]</p><h4 id="Power-balance-constraint-2"><a class="docs-heading-anchor" href="#Power-balance-constraint-2">Power balance constraint</a><a class="docs-heading-anchor-permalink" href="#Power-balance-constraint-2" title="Permalink"></a></h4><p>The major constraints in restoration process is that, at any moment, the total generation capacity minus loads cannot be negative, which can be expressed as follows:</p><p class="math-container">\[\begin{align*}
+	\sum_{i\in G}{p_i(t)} -\sum_{i\in D}{d_i(t)} \ge 0\quad \forall t\in T,
+\end{align*}\]</p><h4 id="Objective-2"><a class="docs-heading-anchor" href="#Objective-2">Objective</a><a class="docs-heading-anchor-permalink" href="#Objective-2" title="Permalink"></a></h4><p>The overall generator start-up formulations without renewable participation read as follow</p><p class="math-container">\[\begin{align*}
+		\min \sum_{g \in G}\sum_{t\in T}tx_{gt}+\sum_{d \in D}\sum_{t\in T}tx_{dt}\\
+\end{align*}\]</p><h3 id="Formulation-3"><a class="docs-heading-anchor" href="#Formulation-3">Formulation 3</a><a id="Formulation-3-1"></a><a class="docs-heading-anchor-permalink" href="#Formulation-3" title="Permalink"></a></h3><p>Here we use big-M technique to express the logical conditions of the sequential generator and load actions. The formulations are implemented in function <code>form_gen_cranking_3</code>.</p><h4 id="Generator-action-logics-3"><a class="docs-heading-anchor" href="#Generator-action-logics-3">Generator action logics</a><a class="docs-heading-anchor-permalink" href="#Generator-action-logics-3" title="Permalink"></a></h4><ul><li>If <span>$t-x_{g}&lt;0$</span>, <span>$p_{gt}=0$</span>. Introduce positive large number <span>$M$</span> and binary variable <span>$a_{gt}$</span>. Build <span>$t - x_{g} &lt; 0 \Leftrightarrow a_{gt}=1$</span> and <span>$t - x_{g} \geq 0 \Leftrightarrow a_{gt}=0$</span>, where <span>$a_{gt}=1$</span> indicates generator <span>$g$</span> is off-line.</li></ul><p class="math-container">\[        \begin{align*}
+		\begin{aligned}
+			&amp;t - x_{g}\leq M (1- a_{gt}) \\
+			&amp;t-x_g \geq -M a_{gt} \\
+			&amp;-M  (1- a_{gt}) \leq p_{gt}\\
+			 &amp;p_{gt}\leq M  (1- a_{gt})
+		\end{aligned}
+        \end{align*}\]</p><ul><li>If <span>$x_{g}\le t $ and $t &lt; x_{g}+t_{g}^{c}$</span>, <span>$p_{gt}=-c_{g}$</span>. Introduce positive large number <span>$M$</span> and binary variable <span>$b_{gt}$</span>. Build <span>$t &lt; x_{g}+t_{g}^{c} \Leftrightarrow b_{gt}=1$</span> and <span>$t \geq x_{g}+t_{g}^{c} \Leftrightarrow b_{gt}=0$</span>, where <span>$b_{gt}=1$</span> indicates generator <span>$g$</span> is at the cranking stage.</li></ul><p class="math-container">\[\begin{align*}
+		\begin{aligned}
+			&amp;t - x_{g}- t_{g}^{c} \leq M (1- b_{gt}) \\
+			&amp;t - x_{g}- t_{g}^{c}\geq -M b_{gt} \\
+			&amp;-M  (1+a_{gt}- b_{gt}) \leq p_{gt} + c_{g}\\
+			&amp; p_{gt} + c_{g}\leq M  (1+a_{gt}- b_{gt})
+		\end{aligned}
+	\end{align*}\]</p><ul><li>If <span>$t &lt;  x_{g}+t_{g}^{c}+t_{g}^{r}$</span>, <span>$p_{gt}=r_g(t-x_{g}-t_{g}^{c})$</span>. Introduce positive large number <span>$M$</span> and binary variable <span>$c_{gt}$</span>. Build <span>$t &lt; x_{g}+t_{g}^{c}+t_{g}^{r} \Leftrightarrow c_{gt}=1$</span> and <span>$t \geq x_{g}+t_{g}^{c}+t_{g}^{r} \Leftrightarrow c_{gt}=0$</span>, where <span>$c_{gt}=1$</span> indicates generator <span>$g$</span> is at the ramping stage.</li></ul><p class="math-container">\[\begin{align*}
+		\begin{aligned}
+			&amp;t - (x_{g}+t_{g}^{c}+t_{g}^{r}) \leq M (1- c_{gt}) \\
+			&amp;t - (x_{g}+t_{g}^{c}+t_{g}^{r})\geq -M c_{gt} \\
+			&amp;-M  (1+a_{gt}+ b_{gt}- c_{gt}) \leq p_{gt} - r_g(t-x_{g}-t_{g}^{c})\\
+			&amp; p_{gt} - r_g(t-x_{g}-t_{g}^{c})\leq M  (1+a_{gt}+ b_{gt}- c_{gt})
+		\end{aligned}
+	\end{align*}\]</p><ul><li>For the last stage, we do not need to introduce new variables.</li></ul><p class="math-container">\[\begin{align*}
+&amp;-M  (a_{gt}+ b_{gt} + c_{gt}) \leq p_{gt} - p^{\mbox{max}} \\
+			&amp; p_{gt} - p^{\mbox{max}} \leq M  (a_{gt}+ b_{gt} + c_{gt})
+\end{align*}\]</p><h4 id="Load-action-logics-3"><a class="docs-heading-anchor" href="#Load-action-logics-3">Load action logics</a><a class="docs-heading-anchor-permalink" href="#Load-action-logics-3" title="Permalink"></a></h4><p>The formulations are implemented in <code>form_load_logic_3</code>.</p><ul><li>If <span>$t-x_{d}&lt;0$</span>, <span>$p_{dt}=0$</span>. Introduce positive large number <span>$M$</span> and binary variable <span>$e_{dt}$</span>. Build <span>$t-x_{d}&lt;0\Leftrightarrow e_{dt}=1$</span> and <span>$t-x_{d}\geq 0 \Leftrightarrow e_{dt}=0$</span>, where <span>$e_{dt}=1$</span> indicates load <span>$d$</span> is off-line.</li></ul><p class="math-container">\[\begin{align*}
+    \begin{aligned}
+        &amp;t - x_{d} \leq M (1- e_{dt}) \\
+        &amp;t - x_{d} \geq -M e_{dt} \\
+        &amp;0 \leq p_{dt} \leq M  (1- e_{dt})\\
+        &amp;-M  e_{dt} \leq p_{dt} + p_{d} \leq M  e_{dt}\\
+    \end{aligned}
+\end{align*}\]</p><h4 id="Power-balance-constraint-3"><a class="docs-heading-anchor" href="#Power-balance-constraint-3">Power balance constraint</a><a class="docs-heading-anchor-permalink" href="#Power-balance-constraint-3" title="Permalink"></a></h4><p>The major constraints in restoration process is that, at any moment, the total generation capacity minus loads cannot be negative, which can be expressed as follows</p><p class="math-container">\[\begin{align*}
+	\begin{aligned}
+		\sum_{i\in G}{p_{it}} -\sum_{i\in D}{d_{it}} \ge 0\quad \forall t\in T
+	\end{aligned}
+\end{align*}\]</p><h4 id="Objective-3"><a class="docs-heading-anchor" href="#Objective-3">Objective</a><a class="docs-heading-anchor-permalink" href="#Objective-3" title="Permalink"></a></h4><p class="math-container">\[\begin{align*}
+		\min \sum_{g \in G}x_{g}+\sum_{d \in D}x_{d}
+	\end{align*}\]</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="ch1_sec2_tutorials.html">« Tutorials</a><a class="docs-footer-nextpage" href="ch1_sec4_advanced_algorithm.html">Advanced Algorithms »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Thursday 31 August 2023 17:04">Thursday 31 August 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
