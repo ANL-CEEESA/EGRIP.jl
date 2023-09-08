@@ -3,9 +3,11 @@ push!(LOAD_PATH,"../src/")
 
 using Documenter, EGRIP
 
+# prettyurls = get(ENV, "CI", nothing) == "true", 
+
 makedocs(
     modules = [EGRIP],
-    format = Documenter.HTML(edit_link = "master", prettyurls = get(ENV, "CI", nothing) == "true", mathengine = Documenter.MathJax(),analytics = "UA-367975-10"),
+    format = Documenter.HTML(edit_link = "master", mathengine = Documenter.MathJax()),
     sitename = "EGRIP.jl",
     pages = [
         "Home" => "index.md",
