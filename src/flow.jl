@@ -29,12 +29,12 @@ function def_var_flow(model, ref, stages)
     @variable(model, al[bp2,stages]) # theta_i^j: angle varaibles in the power flow
     @variable(model, vb[keys(ref[:bus]),stages]) # V_i: bus i voltage
 
-    # line flow with the index rule (branch, from_bus, to_bus)
-    # Note that we can only measure the line flow at the bus terminal
-    # In PSS/E, it seems if a flow limit is set to zero, it is not considered
-    # So for now we relax the flow limits
-    @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs],stages] <= ref[:branch][l]["rate_a"])
-    @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs],stages] <= ref[:branch][l]["rate_a"])
+    # # line flow with the index rule (branch, from_bus, to_bus)
+    # # Note that we can only measure the line flow at the bus terminal
+    # # In PSS/E, it seems if a flow limit is set to zero, it is not considered
+    # # So for now we relax the flow limits
+    # @variable(model, -ref[:branch][l]["rate_a"] <= p[(l,i,j) in ref[:arcs],stages] <= ref[:branch][l]["rate_a"])
+    # @variable(model, -ref[:branch][l]["rate_a"] <= q[(l,i,j) in ref[:arcs],stages] <= ref[:branch][l]["rate_a"])
     @variable(model, p[(l,i,j) in ref[:arcs],stages])
     @variable(model, q[(l,i,j) in ref[:arcs],stages])
 
