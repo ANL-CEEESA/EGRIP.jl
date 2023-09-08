@@ -25,5 +25,5 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/ANL-CEEESA/EGRIP.jl.git",
+    repo = "github.com/whoiszyc/EGRIP.jl.git",
 )
