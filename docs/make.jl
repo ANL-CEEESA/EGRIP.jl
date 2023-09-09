@@ -3,7 +3,7 @@ push!(LOAD_PATH,"../src/")
 
 using Documenter, EGRIP
 
-# prettyurls = get(ENV, "CI", nothing) == "true", 
+# prettyurls = get(ENV, "CI", nothing) == "true",
 
 makedocs(
     modules = [EGRIP],
@@ -25,4 +25,6 @@ makedocs(
     ]
 )
 
-# deploydocs(repo = "github.com/ANL-CEEESA/EGRIP.jl.git")
+deploydocs(repo = "github.com/ANL-CEEESA/EGRIP.jl.git",
+           devbranch = "dev",
+           )
