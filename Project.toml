@@ -1,6 +1,6 @@
 name = "EGRIP"
 uuid = "2617631f-9c38-419e-a798-0ddd390d4e76"
-authors = ["Yichen Zhang"]
+authors = ["Yichen Zhang, Rui Yao, Feng Qiu"]
 version = "0.1.0"
 
 [deps]
