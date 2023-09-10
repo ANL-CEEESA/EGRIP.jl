@@ -22,6 +22,8 @@ using DataFrames
 using Interpolations
 using Distributions
 using Gurobi
+using PowerModels
+using Ipopt
 
 # local functions
 include("proj_utils.jl")
@@ -34,6 +36,8 @@ dir_case_result = "results_startup_density/"
 gap = 0.0
 
 ref = load_network(dir_case_network, network_data_format)
+
+pf_result = solve_ac_opf(ref, Ipopt.Optimizer)
 
 # t_final = 400
 # t_step = 10
@@ -344,11 +348,13 @@ println("The objective value is: ", objective_value(model))
 
 Pg_total_seq = get_value(model[:pg_total])
 Pd_total_seq = get_value(model[:pd_total])
-println(Pg_total_seq)
-println(Pd_total_seq)
-
 line_seq = get_value(model[:x])
-println(line_seq)
+vl = get_value(model[:vl])
+
+# println(Pg_total_seq)
+# println(Pd_total_seq)
+# println(line_seq)
+println(vl)
 
 # # --------- retrieve results and plotting ---------
 # Pg_seq = Dict()
@@ -386,40 +392,40 @@ println(line_seq)
 # end
 
 # # ===================================== plot ===================================
-# # # Pyplot generic setting
-# using PyPlot
-# PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
-# rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-# rcParams["font.family"] = "Arial"
+# # Pyplot generic setting
+using PyPlot
+PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
+rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
+rcParams["font.family"] = "Arial"
 
 # # -------------------------- generator and load in one plot --------------------
-# fig, ax = PyPlot.subplots(figsize=(12, 5))
-# for i in test_from:test_end
-#     ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
-#                 color=line_colors[1],
-#                 linestyle = line_style[1],
-#                 marker=line_markers[1],
-#                 linewidth=2,
-#                 markersize=2,
-#                 label="Generation")
-# end
-# for i in test_from:test_end
-#     ax.plot(t_step:t_step:t_final, (Pd_seq[i])*100,
-#                 color=line_colors[2],
-#                 linestyle = line_style[2],
-#                 marker=line_markers[2],
-#                 linewidth=2,
-#                 markersize=2,
-#                 label="Load")
-# end
-# ax.set_title("Restoration Trajectory", fontdict=Dict("fontsize"=>20))
-# ax.legend(loc="lower right", fontsize=20)
-# ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
-# ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
-# ax.xaxis.set_tick_params(labelsize=20)
-# ax.yaxis.set_tick_params(labelsize=20)
-# fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
-# PyPlot.show()
+fig, ax = PyPlot.subplots(figsize=(12, 5))
+for i in test_from:test_end
+    ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
+                color=line_colors[1],
+                linestyle = line_style[1],
+                marker=line_markers[1],
+                linewidth=2,
+                markersize=2,
+                label="Generation")
+end
+for i in test_from:test_end
+    ax.plot(t_step:t_step:t_final, (Pd_seq[i])*100,
+                color=line_colors[2],
+                linestyle = line_style[2],
+                marker=line_markers[2],
+                linewidth=2,
+                markersize=2,
+                label="Load")
+end
+ax.set_title("Restoration Trajectory", fontdict=Dict("fontsize"=>20))
+ax.legend(loc="lower right", fontsize=20)
+ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
+ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
+ax.xaxis.set_tick_params(labelsize=20)
+ax.yaxis.set_tick_params(labelsize=20)
+fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+PyPlot.show()
 
 # # ----------------------------------- load status ------------------------------
 # ordered_load = sort!(OrderedDict(ref[1][:load])) # order the dict based on the key
