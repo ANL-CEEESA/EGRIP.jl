@@ -5,3 +5,5 @@
 /ERCOT_wind
 /GMLC_test_case
 /docs/build
+.vscode/
+Manifest.toml
