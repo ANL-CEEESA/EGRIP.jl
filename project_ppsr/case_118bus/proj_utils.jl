@@ -82,17 +82,19 @@ function form_gen_plan_enforce(model, ref, stages, plan_gen)
             t = Int(t)
             g = Int(g)
 
-            # enforce status
             if plan_gen[g][t] == 0
-                @constraint(model, model[:pg][g,t] == 0)
-            else
+                @constraint(model, model[:y][g,t] == 0)
+                @constraint(model, model[:pg][g,t] == plan_gen[g][t])
+            elseif plan_gen[g][t] <= 0
                 @constraint(model, model[:y][g,t] == 1)
+                @constraint(model, model[:pg][g,t] == plan_gen[g][t])
+            elseif plan_gen[g][t] >= 0
+                @constraint(model, model[:y][g,t] == 1)
+                @constraint(model, model[:pg][g,t] <= plan_gen[g][t])
+                @constraint(model, model[:pg][g,t] >= 0)
             end
 
-            # enforce active power
-            @constraint(model, model[:pg][g,t] <= plan_gen[g][t])
-
-            # reactive power limits associated with the generator status
+            # # reactive power limits associated with the generator status
             @constraint(model, model[:qg][g,t] >= ref[:gen][g]["qmin"] * model[:y][g,t])
             @constraint(model, model[:qg][g,t] <= ref[:gen][g]["qmax"] * model[:y][g,t])
         end
@@ -101,6 +103,41 @@ function form_gen_plan_enforce(model, ref, stages, plan_gen)
         @constraint(model, model[:pg_total][t] == sum(model[:pg][g,t] for g in keys(ref[:gen])))
     end
 
+    return model
+end
+
+function form_load_plan_enforce(model, ref, stages, plan_load)
+
+    println("Formulating load plan enforcement constraint")
+
+    # generate an array of the plan_load key
+    key_plan_load = [k for (k,v) in plan_load]
+
+    for t in stages
+        for i in keys(ref[:load])
+            t = Int(t)
+            i = Int(i)
+            pl = model[:pl]
+            u = model[:u]
+            
+            # check if the load is a critical load
+            # only critical load is in the plan
+            if isempty(findall(x->x==i, key_plan_load))
+                # not in the plan: make the load dispatch if the bus is energized
+
+                # find bus index
+                idx_bus = ref[:load][i]["load_bus"]
+                @constraint(model, pl[i,t] >= 0)
+                @constraint(model, pl[i,t] <= ref[:load][i]["pd"] * u[idx_bus,t])
+            else
+                # otherwise: enforce status
+                @constraint(model, model[:pl][i,t] == plan_load[i][t])      
+            end
+
+            
+        end
+    end
+    
     return model
 end
 

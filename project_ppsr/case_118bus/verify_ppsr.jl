@@ -37,8 +37,6 @@ gap = 0.0
 
 ref = load_network(dir_case_network, network_data_format)
 
-pf_result = solve_ac_opf(ref, Ipopt.Optimizer)
-
 # t_final = 400
 # t_step = 10
 # nstage = Int64(t_final/t_step)
@@ -62,7 +60,8 @@ group_bs_bus_idx = unique(plan[:,end])
 # get all buses in each group
 network_section = Dict()
 for i in group_bs_bus_idx
-    network_section[i] = findall(x->x==i,plan[:,end])
+    idx_group = findall(x->x==i,plan[:,end])
+    network_section[i] = plan[idx_group,1]
 end
 
 # we need to split ref data based on sectionalization
@@ -185,20 +184,30 @@ for i in keys(section_ref)
 
 end
 
-
 # delete boundary arcs in bus_arcs
 arc_delete = []
 for i in keys(network_section)  # loop all sections
     for (idx_bus, all_arc_bus_bus) in section_ref[i][:bus_arcs]     # loop bus_arcs, data format (arc, bus, bus), no direction (5, 5, 6)=(5, 6, 5)
-         # loop all arcs connected to one bus
+
+        # when we delete the arcs in a loop, the indices will change. We should store all indices and delete them at once
+        idx_delete_store = []
+
+        # loop all arcs connected to one bus
         for arc_bus_bus in all_arc_bus_bus
             # as long as one of the two terminal buses is not in this section, delete this arc 
             if isempty(findall(x->x==arc_bus_bus[2], network_section[i])) | isempty(findall(x->x==arc_bus_bus[3], network_section[i]))
                 idx_delete = findall(x->x==arc_bus_bus, all_arc_bus_bus)
-                deleteat!(all_arc_bus_bus, idx_delete)
-                push!(arc_delete, arc_bus_bus)
+                push!(idx_delete_store, idx_delete[1])
             end
         end
+
+        # record all deleted arcs
+        for i in idx_delete_store
+            push!(arc_delete, all_arc_bus_bus[i])
+        end
+        #commit the delete
+        deleteat!(all_arc_bus_bus, idx_delete_store)
+
     end
 end
 
@@ -259,6 +268,7 @@ for i in 1:plan_size[1]
     plan_bus[bus_id] = Array(plan[i,7:end-1])
 
     # get generator plan
+    # since PPSR does not consider power balance, we will focus on generator proccess
     if bus_type == "NBS"
         gen_id = section_ref[section_id][:bus_gens][bus_id]
         plan_gen[gen_id[1]] = []
@@ -283,16 +293,15 @@ for i in 1:plan_size[1]
     elseif bus_type == "BS"
         gen_id = section_ref[section_id][:bus_gens][bus_id]
         plan_gen[gen_id[1]] = Array(plan[i,7:end-1]) * bus_cap/100
-    
-    # get load plan
+
     elseif bus_type == "CL"
         load_id = section_ref[section_id][:bus_loads][bus_id]
-        plan_load[load_id[1]] = Array(plan[i,7:end-1]) * bus_crank_p/100
-    end
+        plan_load[load_id[1]] = Array(plan[i,7:end-1]) * bus_cap/100
+    end 
 end
 
 # define stages:
-stages = 1: length(plan[1,7:end-1])
+stages = 1: length(plan[1,7])
 
 model = Model(Gurobi.Optimizer)
 set_optimizer_attribute(model, "MIPGap", 0)
@@ -327,19 +336,14 @@ end
 # generator plan enforcement
 model = form_gen_plan_enforce(model, section_ref[28], stages, plan_gen)
 
-# load plan enforcement
-#TODO: need discussion
-# model = form_load_plan_enforce(model, ref, stages, plan_load)
-model = form_load_logic(model, section_ref[28], stages)
-
-# bus plan enforcement
-model = form_bus_plan_enforce(model, section_ref[28], stages, plan_bus)
+# load pickup constraints
+model = form_load_plan_enforce(model, section_ref[28], stages, plan_load)
 
 println("Complete defining restoration constraints")
 
 #------------------- Define objectives--------------------
 ## (5) maximize both total load and generator status
-@objective(model, Max, sum(model[:pl][d, t] for d in keys(section_ref[28][:load]) for t in stages))
+@objective(model, Min, sum(model[:x][l, t] for l in keys(section_ref[28][:buspairs]) for t in stages))
 optimize!(model) 
 status = termination_status(model)
 println("")
@@ -348,14 +352,71 @@ println("The objective value is: ", objective_value(model))
 
 Pg_total_seq = get_value(model[:pg_total])
 Pd_total_seq = get_value(model[:pd_total])
-line_seq = get_value(model[:x])
-vl = get_value(model[:vl])
+res_line_seq = get_value(model[:x])
+res_vm = get_value(model[:v])
+res_vl = get_value(model[:vl])
+res_vb = get_value(model[:vb])
+res_pl = get_value(model[:pl])
+res_pg = get_value(model[:pg])
+res_qg = get_value(model[:qg])
+res_p = get_value(model[:p])
+res_q = get_value(model[:q])
 
-# println(Pg_total_seq)
-# println(Pd_total_seq)
-# println(line_seq)
-println(vl)
+println("             ")
+println("line sequence")
+for i in keys(res_line_seq)
+    println(i, ": ", res_line_seq[i])
+end
 
+println("             ")
+println("bus voltage")
+for i in keys(res_vm)
+    println(i, ": ", res_vm[i])
+end
+
+println("             ")
+println("bus voltage b")
+for i in keys(res_vb)
+    println(i, ": ", res_vb[i])
+end
+
+println("             ")
+println("virtual bus voltage")
+for i in keys(res_vl)
+    println(i, ": ", res_vl[i])
+end
+
+println("             ")
+println("active power flow")
+for i in keys(res_p)
+    println(i, ": ", res_p[i])
+end
+
+println("             ")
+println("reactive power flow")
+for i in keys(res_q)
+    println(i, ": ", res_q[i])
+end
+
+println("             ")
+println("load")
+for i in keys(res_pl)
+    println(i, ": ", res_pl[i])
+end
+
+println("             ")
+println("generator active")
+for i in keys(res_pg)
+    println(i, ": ", res_pg[i])
+end
+
+println("             ")
+println("generator reactive")
+for i in keys(res_qg)
+    println(i, ": ", res_qg[i])
+end
+
+println("end of plot")
 # # --------- retrieve results and plotting ---------
 # Pg_seq = Dict()
 # Pd_seq = Dict()
@@ -393,39 +454,39 @@ println(vl)
 
 # # ===================================== plot ===================================
 # # Pyplot generic setting
-using PyPlot
-PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
-rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
-rcParams["font.family"] = "Arial"
+# using PyPlot
+# PyPlot.pygui(true) # If true, return Python-based GUI; otherwise, return Julia backend
+# rcParams = PyPlot.PyDict(PyPlot.matplotlib."rcParams")
+# rcParams["font.family"] = "Arial"
 
-# # -------------------------- generator and load in one plot --------------------
-fig, ax = PyPlot.subplots(figsize=(12, 5))
-for i in test_from:test_end
-    ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
-                color=line_colors[1],
-                linestyle = line_style[1],
-                marker=line_markers[1],
-                linewidth=2,
-                markersize=2,
-                label="Generation")
-end
-for i in test_from:test_end
-    ax.plot(t_step:t_step:t_final, (Pd_seq[i])*100,
-                color=line_colors[2],
-                linestyle = line_style[2],
-                marker=line_markers[2],
-                linewidth=2,
-                markersize=2,
-                label="Load")
-end
-ax.set_title("Restoration Trajectory", fontdict=Dict("fontsize"=>20))
-ax.legend(loc="lower right", fontsize=20)
-ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
-ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
-ax.xaxis.set_tick_params(labelsize=20)
-ax.yaxis.set_tick_params(labelsize=20)
-fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
-PyPlot.show()
+# # # -------------------------- generator and load in one plot --------------------
+# fig, ax = PyPlot.subplots(figsize=(12, 5))
+# for i in test_from:test_end
+#     ax.plot(t_step:t_step:t_final, (Pg_seq[i])*100,
+#                 color=line_colors[1],
+#                 linestyle = line_style[1],
+#                 marker=line_markers[1],
+#                 linewidth=2,
+#                 markersize=2,
+#                 label="Generation")
+# end
+# for i in test_from:test_end
+#     ax.plot(t_step:t_step:t_final, (Pd_seq[i])*100,
+#                 color=line_colors[2],
+#                 linestyle = line_style[2],
+#                 marker=line_markers[2],
+#                 linewidth=2,
+#                 markersize=2,
+#                 label="Load")
+# end
+# ax.set_title("Restoration Trajectory", fontdict=Dict("fontsize"=>20))
+# ax.legend(loc="lower right", fontsize=20)
+# ax.xaxis.set_label_text("Time (min)", fontdict=Dict("fontsize"=>20))
+# ax.yaxis.set_label_text("Power (MW)", fontdict=Dict("fontsize"=>20))
+# ax.xaxis.set_tick_params(labelsize=20)
+# ax.yaxis.set_tick_params(labelsize=20)
+# fig.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)
+# PyPlot.show()
 
 # # ----------------------------------- load status ------------------------------
 # ordered_load = sort!(OrderedDict(ref[1][:load])) # order the dict based on the key

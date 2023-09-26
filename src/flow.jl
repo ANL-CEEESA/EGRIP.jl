@@ -116,25 +116,25 @@ function form_nodal(model, ref, stages)
         for t in stages
             # # voltage constraints
             # # voltage constraints are only activated if the associated line is energized
-            @constraint(model, vl[(i,j),t] >= (ref[:bus][i]["vmin"]-5000000)*x[(i,j),t])
-            @constraint(model, vl[(i,j),t] <= (ref[:bus][i]["vmax"]+5000000)*x[(i,j),t])
-            @constraint(model, vl[(j,i),t] >= (ref[:bus][j]["vmin"]-5000000)*x[(i,j),t])
-            @constraint(model, vl[(j,i),t] <= (ref[:bus][j]["vmax"]+5000000)*x[(i,j),t])
+            @constraint(model, vl[(i,j),t] >= (ref[:bus][i]["vmin"])*x[(i,j),t])
+            @constraint(model, vl[(i,j),t] <= (ref[:bus][i]["vmax"])*x[(i,j),t])
+            @constraint(model, vl[(j,i),t] >= (ref[:bus][j]["vmin"])*x[(i,j),t])
+            @constraint(model, vl[(j,i),t] <= (ref[:bus][j]["vmax"])*x[(i,j),t])
             # # the bus voltage and supplementary bus voltage equals to each other only when the line is energized
-            # @constraint(model, vl[(i,j),t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-x[(i,j),t]))
-            # @constraint(model, vl[(i,j),t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-x[(i,j),t]))
-            # @constraint(model, vl[(j,i),t] >= v[j,t] - ref[:bus][j]["vmax"]*(1-x[(i,j),t]))
-            # @constraint(model, vl[(j,i),t] <= v[j,t] - ref[:bus][j]["vmin"]*(1-x[(i,j),t]))
+            @constraint(model, vl[(i,j),t] >= v[i,t] - ref[:bus][i]["vmax"]*(1-x[(i,j),t]))
+            @constraint(model, vl[(i,j),t] <= v[i,t] - ref[:bus][i]["vmin"]*(1-x[(i,j),t]))
+            @constraint(model, vl[(j,i),t] >= v[j,t] - ref[:bus][j]["vmax"]*(1-x[(i,j),t]))
+            @constraint(model, vl[(j,i),t] <= v[j,t] - ref[:bus][j]["vmin"]*(1-x[(i,j),t]))
 
             # angle difference constraints
             # angle difference constraints are only activated if the associated line is energized
             # The numberical values are used to test the feasibility (9/8 test: angle constraints are not causing infeasibility)
-            @constraint(model, a[i,t] - a[j,t] >= ref[:buspairs][(i,j)]["angmin"]-0.0)
-            @constraint(model, a[i,t] - a[j,t] <= ref[:buspairs][(i,j)]["angmax"]+0.0)
-            @constraint(model, al[(i,j),t] - al[(j,i),t] >= (ref[:buspairs][(i,j)]["angmin"]-0.0)*x[(i,j),t])
-            @constraint(model, al[(i,j),t] - al[(j,i),t] <= (ref[:buspairs][(i,j)]["angmax"]+0.0)*x[(i,j),t])
-            @constraint(model, al[(i,j),t] - al[(j,i),t] >= a[i,t] - a[j,t] - (ref[:buspairs][(i,j)]["angmax"]+0.0)*(1-x[(i,j),t]))
-            @constraint(model, al[(i,j),t] - al[(j,i),t] <= a[i,t] - a[j,t] - (ref[:buspairs][(i,j)]["angmin"]-0.0)*(1-x[(i,j),t]))
+            @constraint(model, a[i,t] - a[j,t] >= ref[:buspairs][(i,j)]["angmin"])
+            @constraint(model, a[i,t] - a[j,t] <= ref[:buspairs][(i,j)]["angmax"])
+            @constraint(model, al[(i,j),t] - al[(j,i),t] >= (ref[:buspairs][(i,j)]["angmin"])*x[(i,j),t])
+            @constraint(model, al[(i,j),t] - al[(j,i),t] <= (ref[:buspairs][(i,j)]["angmax"])*x[(i,j),t])
+            @constraint(model, al[(i,j),t] - al[(j,i),t] >= a[i,t] - a[j,t] - (ref[:buspairs][(i,j)]["angmax"])*(1-x[(i,j),t]))
+            @constraint(model, al[(i,j),t] - al[(j,i),t] <= a[i,t] - a[j,t] - (ref[:buspairs][(i,j)]["angmin"])*(1-x[(i,j),t]))
 
             # energized line cannot be shut down
             if t > 1
@@ -153,10 +153,10 @@ function form_nodal(model, ref, stages)
         for t in stages
             bus_shunts = [ref[:shunt][s] for s in ref[:bus_shunts][i]]
 
-            @constraint(model, vb[i,t] >= (ref[:bus][i]["vmin"]-0.5)*u[i,t])
-            @constraint(model, vb[i,t] <= (ref[:bus][i]["vmax"]+0.5)*u[i,t])
-            @constraint(model, vb[i,t] >= v[i,t] - (ref[:bus][i]["vmax"]+0.5)*(1-u[i,t]))
-            @constraint(model, vb[i,t] <= v[i,t] - (ref[:bus][i]["vmin"]-0.5)*(1-u[i,t]))
+            @constraint(model, vb[i,t] >= (ref[:bus][i]["vmin"])*u[i,t])
+            @constraint(model, vb[i,t] <= (ref[:bus][i]["vmax"])*u[i,t])
+            @constraint(model, vb[i,t] >= v[i,t] - (ref[:bus][i]["vmax"])*(1-u[i,t]))
+            @constraint(model, vb[i,t] <= v[i,t] - (ref[:bus][i]["vmin"])*(1-u[i,t]))
 
             # u_i >= y_i & u_{i,t} >= u_{i,t-1}
             # for g in ref[:bus_gens][i]
@@ -203,6 +203,7 @@ end
 
 
 function bus_energization_rule(model, ref, stages)
+    println("Formulating bus energization rule")
     # bus energization rule
     # for non-generator bus, there needs to be at least one connected energized line before this bus can be energyized
     # if size(ref[:bus_gens][i],1) == 0
