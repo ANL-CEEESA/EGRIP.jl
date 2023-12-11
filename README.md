@@ -3,7 +3,7 @@
 Welcome to the [documentation](https://anl-ceeesa.github.io/EGRIP.jl/index.html) for `EGRIP.jl`!
 
 ## Overview
-EGRIP (Electricity Grid Resilience Improvement Program) is a Julia/MATALB package for power system restoration planning and verification. After a partial or full blackout, the objective of the system operator is to restore the customer services as soon as possible, which is crucial for power system resilience. Power system restoration is an extremely complicated process, involving multiple steps, highly combinatorial operational decisions, and highly nonlinear technical constraints, which make restoration planning an exceptionally challenging task.
+EGRIP (Electricity Grid Resilience Improvement Program) is a Julia/MATALB package for power system restoration planning and simulation. After a partial or full blackout, the objective of the system operator is to restore the electricity services as soon as possible, which is crucial for power system resilience. Power system restoration is an extremely complicated process, involving multiple steps, highly combinatorial operational decisions, and highly nonlinear technical constraints, which make restoration planning an exceptionally challenging task.
 
 The objective of this toolkit is to:
 - Improve the preparedness of power systems for extreme weather conditions
