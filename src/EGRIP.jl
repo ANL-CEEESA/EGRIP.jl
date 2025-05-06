@@ -12,7 +12,8 @@ using DataStructures # for OrderedDict
 using Interpolations
 using StatsBase
 # using CPLEX
-using Gurobi
+# using Gurobi
+using HiGHS
 
 include("restoration.jl")
 include("refine.jl")

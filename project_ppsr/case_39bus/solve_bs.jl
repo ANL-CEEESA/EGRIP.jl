@@ -10,6 +10,8 @@ push!(LOAD_PATH,"../src/")
 using EGRIP
 using JuMP
 
+# import HiGHS
+
 # Or we use EGRIP as a module.
 # include("../src/EGRIP.jl")
 # using .EGRIP

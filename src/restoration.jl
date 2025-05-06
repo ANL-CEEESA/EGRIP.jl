@@ -18,7 +18,7 @@ Solve full restoration problem (The restoration problem could be partial or full
     - generator status and output constraint
     - load pick-up constraint
 """
-function solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap; solver="gurobi", line_damage=nothing)
+function solve_restoration_full(dir_case_network, network_data_format, dir_case_blackstart, dir_case_result, t_final, t_step, gap; solver="HiGHS", line_damage=nothing)
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -48,6 +48,11 @@ function solve_restoration_full(dir_case_network, network_data_format, dir_case_
     elseif solver == "gurobi"
         model = Model(Gurobi.Optimizer)
         set_optimizer_attribute(model, "MIPGap", gap)
+    elseif solver == "HiGHS"
+        model = Model(HiGHS.Optimizer)
+        set_optimizer_attribute(model, "presolve", "on")
+        set_optimizer_attribute(model, "time_limit", 60.0)
+        set_optimizer_attribute(model, "mip_rel_gap", gap)
     else
         println("Solver not avaliable")
     end

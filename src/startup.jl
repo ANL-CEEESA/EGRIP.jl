@@ -35,7 +35,7 @@ function solve_startup(dir_case_network,
     form,
     wind,
     wind_data=nothing;
-    saa_mode=2, solver="gurobi")
+    saa_mode=2, solver="HiGHS")
     #----------------- Data processing -------------------
     # load network data
     ref = load_network(dir_case_network, network_data_format)
@@ -65,6 +65,11 @@ function solve_startup(dir_case_network,
     elseif solver == "gurobi"
         model = Model(Gurobi.Optimizer)
         set_optimizer_attribute(model, "MIPGap", gap)
+    elseif solver == "HiGHS"
+        model = Model(HiGHS.Optimizer)
+        set_optimizer_attribute(model, "presolve", "on")
+        set_optimizer_attribute(model, "time_limit", 60.0)
+        set_optimizer_attribute(model, "mip_rel_gap", gap)
     else
         println("Solver not avaliable")
     end
@@ -467,6 +472,11 @@ function verify_startup_ppsr(dir_case_network,
     elseif solver == "gurobi"
         model = Model(Gurobi.Optimizer)
         set_optimizer_attribute(model, "MIPGap", gap)
+    elseif solver == "HiGHS"
+        model = Model(HiGHS.Optimizer)
+        set_optimizer_attribute(model, "presolve", "on")
+        set_optimizer_attribute(model, "time_limit", 60.0)
+        set_optimizer_attribute(model, "mip_rel_gap", gap)
     else
         println("Solver not avaliable")
     end
